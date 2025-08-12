@@ -17,7 +17,7 @@ export function signToken(payload: payload){
 export function verifyToken(token: string){
     try{
         const data = jwt.verify(token, process.env.JWT_SECRET as string);
-        return data;
+        return data as payload;
     }
     catch(err){
         console.error(err);

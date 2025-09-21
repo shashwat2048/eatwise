@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import gql from "graphql-tag";
 import { useAuth } from "@clerk/nextjs";
 import { ChevronDown } from "lucide-react";
+import { LoaderFive } from "@/components/ui/loader";
 
 type Report = {
   id: string;
@@ -21,6 +22,24 @@ export default function ReportsPage() {
   const [reports, setReports] = useState<Report[]>([]);
   const [loading, setLoading] = useState(true);
   const [userAllergies, setUserAllergies] = useState<string[]>([]);
+
+  function gradeClass(g?: string | null) {
+    const v = (g || '').toString().trim().toUpperCase();
+    switch (v) {
+      case 'A':
+        return 'bg-green-700 text-white';
+      case 'B':
+        return 'bg-green-600 text-white';
+      case 'C':
+        return 'bg-yellow-400 text-black';
+      case 'D':
+        return 'bg-orange-500 text-white';
+      case 'E':
+        return 'bg-red-600 text-white';
+      default:
+        return 'bg-gray-400 text-white';
+    }
+  }
 
   useEffect(() => {
     let mounted = true;
@@ -62,9 +81,9 @@ export default function ReportsPage() {
         <p className="text-sm text-gray-600 dark:text-gray-300">Recent label analyses with grades, allergens and nutrition.</p>
       </div>
       {loading ? (
-        <div>Loading...</div>
+        <div className="min-h-[40vh] grid place-items-center"><LoaderFive text="Loading reports..." /></div>
       ) : (
-        <div className="space-y-4">
+        <div className="space-y-3 sm:space-y-4">
           {reports.map((r) => {
             let parsed: any = {};
             try { parsed = r.content ? JSON.parse(r.content) : {}; } catch {}
@@ -74,22 +93,21 @@ export default function ReportsPage() {
             const possible = parsed?.possibleAllergens || [];
             const name = parsed?.name || "Food Label";
             return (
-              <details key={r.id} className="rounded-2xl border backdrop-blur bg-white/60 dark:bg-black/30 p-4">
-                <summary className="cursor-pointer flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className="font-medium">{name}</span>
-                    <span className="text-xs text-gray-500">{new Date(r.createdAt).toLocaleString()}</span>
+              <details key={r.id} className="group rounded-2xl border backdrop-blur bg-white/60 dark:bg-black/30 p-3 sm:p-4">
+                <summary className="cursor-pointer flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="font-medium truncate max-w-[60vw] sm:max-w-[40vw]">{name}</span>
                   </div>
                   <div className="flex items-center gap-2">
                     {grade && (
-                      <span className="inline-flex items-center justify-center h-8 w-8 rounded-md bg-teal-600 text-white text-sm font-semibold">{grade}</span>
+                      <span className={`inline-flex items-center justify-center h-7 w-7 sm:h-8 sm:w-8 rounded-md text-sm font-semibold ${gradeClass(grade)}`}>{grade}</span>
                     )}
-                    <ChevronDown className="h-4 w-4" />
+                    <ChevronDown className="h-4 w-4 transition-transform duration-200 group-open:rotate-180" />
                   </div>
                 </summary>
                 <div className="mt-3 space-y-3">
                 {r.imageUrl && (
-                  <img src={r.imageUrl} alt="report" className="w-full h-40 object-cover rounded-xl border" />
+                  <img src={r.imageUrl} alt="report" className="w-full h-36 sm:h-48 object-cover rounded-xl border" />
                 )}
                 <div className="space-y-1">
                   <div className="text-sm font-medium">Ingredients</div>
@@ -140,6 +158,7 @@ export default function ReportsPage() {
                     <div className="px-3 pb-3 text-xs whitespace-pre-wrap">{health}</div>
                   </details>
                 )}
+                <div className="text-[10px] sm:text-xs text-gray-500 text-right">{new Date(r.createdAt).toLocaleString()}</div>
                 </div>
               </details>
             );

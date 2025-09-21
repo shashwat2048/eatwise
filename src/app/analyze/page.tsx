@@ -2,6 +2,8 @@
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
+import { FileUpload } from "@/components/ui/file-upload";
+import { GridPattern } from "@/components/ui/file-upload";
 
 export default function AnalyzePage() {
   const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -13,6 +15,7 @@ export default function AnalyzePage() {
   const [file, setFile] = useState<File | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [cameraOn, setCameraOn] = useState(false);
   const [result, setResult] = useState<null | {
     ingredients: string[];
     allergens: string[];
@@ -23,6 +26,24 @@ export default function AnalyzePage() {
     saved?: boolean;
   }>(null);
   const router = useRouter();
+
+  function gradeClass(g?: string | null) {
+    const val = (g || '').toString().trim().toUpperCase();
+    switch (val) {
+      case 'A':
+        return 'bg-green-700 text-white';
+      case 'B':
+        return 'bg-green-600 text-white';
+      case 'C':
+        return 'bg-yellow-400 text-black';
+      case 'D':
+        return 'bg-orange-500 text-white';
+      case 'E':
+        return 'bg-red-600 text-white';
+      default:
+        return 'bg-gray-400 text-white';
+    }
+  }
 
   useEffect(() => {
     return () => {
@@ -41,6 +62,7 @@ export default function AnalyzePage() {
         videoRef.current.srcObject = stream;
         await videoRef.current.play();
       }
+      setCameraOn(true);
     } catch (e) {
       setError("Camera access denied or unavailable");
     }
@@ -72,6 +94,7 @@ export default function AnalyzePage() {
     if (videoRef.current) {
       videoRef.current.srcObject = null;
     }
+    setCameraOn(false);
   }
 
   function onFileChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -90,6 +113,16 @@ export default function AnalyzePage() {
     setFile(null);
     if (preview) URL.revokeObjectURL(preview);
     setPreview(null);
+  }
+
+  function handleFileUpload(files: File[]) {
+    if (!files || files.length === 0) return;
+    const first = files[0];
+    setFile(first);
+    try {
+      if (preview) URL.revokeObjectURL(preview);
+    } catch {}
+    setPreview(URL.createObjectURL(first));
   }
 
   async function onSubmit() {
@@ -148,50 +181,60 @@ export default function AnalyzePage() {
         <p className="text-sm text-gray-600 dark:text-gray-300">Capture with camera or upload from device, then let EatWise do the rest.</p>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2">
-        <div className="rounded-2xl border backdrop-blur bg-white/60 dark:bg-black/30 p-4 space-y-3">
-          <video ref={videoRef} className="w-full rounded-xl border" playsInline muted />
-          <div className="flex gap-2">
-            <button onClick={startCamera} className="px-3 py-2 rounded-md bg-teal-600 text-white hover:bg-teal-700">Start Camera</button>
-            <button onClick={captureFrame} className="px-3 py-2 rounded-md border">Capture</button>
-            <button onClick={stopCamera} className="px-3 py-2 rounded-md border">Stop</button>
+      <div className="grid gap-4 sm:gap-6 md:grid-cols-2">
+        <div className="rounded-2xl border backdrop-blur bg-white/60 dark:bg-black/30 p-4 sm:p-6 space-y-3 relative overflow-hidden">
+          <div className="relative z-10 space-y-3">
+            <div>
+              <p className="font-semibold text-neutral-800 dark:text-neutral-100">Use your camera</p>
+              <p className="text-xs text-neutral-500 dark:text-neutral-300">Start the camera, frame the food label and capture.</p>
+            </div>
+            <div className="relative aspect-video w-full rounded-xl border border-neutral-200/60 dark:border-neutral-800/60 overflow-hidden bg-black/40">
+              <div className="absolute inset-0 [mask-image:radial-gradient(ellipse_at_center,white,transparent)] pointer-events-none">
+                <GridPattern />
+              </div>
+              {!cameraOn && (
+                <div className="absolute inset-0 z-20 flex items-center justify-center text-neutral-200/80 text-xs">
+                  Start camera to preview
+                </div>
+              )}
+              <video ref={videoRef} className="relative z-10 w-full h-full object-contain" playsInline muted />
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <button onClick={startCamera} className="w-full sm:w-auto justify-center px-3 py-2 rounded-md bg-teal-600 text-white hover:bg-teal-700">Start Camera</button>
+              <button onClick={captureFrame} className="w-full sm:w-auto justify-center px-3 py-2 rounded-md border border-neutral-200/60 dark:border-neutral-800/60">Capture</button>
+              <button onClick={stopCamera} className="w-full sm:w-auto justify-center px-3 py-2 rounded-md border border-neutral-200/60 dark:border-neutral-800/60">Stop</button>
+            </div>
+            <canvas ref={canvasRef} className="hidden" />
           </div>
-          <canvas ref={canvasRef} className="hidden" />
         </div>
 
         <div className="rounded-2xl border backdrop-blur bg-white/60 dark:bg-black/30 p-4 space-y-3">
-          <input ref={fileInputRef} type="file" accept="image/*" capture="environment" onChange={onFileChange} className="hidden" />
-          <div
-            role="button"
-            onClick={openFilePicker}
-            className="w-full rounded-xl border-2 border-dashed p-8 text-center hover:bg-accent cursor-pointer select-none"
-          >
-            <div className="text-sm font-medium">Click to upload from your device</div>
-            <div className="text-xs text-gray-500">Supported: JPG, PNG. Or use the camera on the left.</div>
+          <div className="w-full max-w-4xl mx-auto min-h-40 border border-dashed bg-white dark:bg-black border-neutral-200 dark:border-neutral-800 rounded-lg">
+            <FileUpload onChange={handleFileUpload} />
           </div>
           {preview && (
             <div className="space-y-2">
               <img src={preview} alt="preview" className="w-full rounded-xl border" />
-              <button onClick={clearImage} className="px-3 py-2 rounded-md border">Clear Image</button>
+              <button onClick={clearImage} className="w-full sm:w-auto px-3 py-2 rounded-md border">Clear Image</button>
             </div>
           )}
         </div>
       </div>
 
-      <div className="flex items-center gap-3">
-        <button disabled={!file || busy} onClick={onSubmit} className="px-5 py-2.5 rounded-md bg-teal-600 text-white hover:bg-teal-700 disabled:opacity-50">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+        <button disabled={!file || busy} onClick={onSubmit} className="w-full sm:w-auto px-5 py-2.5 rounded-md bg-teal-600 text-white hover:bg-teal-700 disabled:opacity-50">
           {busy ? "Analyzing..." : "Send to Analyze"}
         </button>
         {error && <span className="text-red-600 text-sm">{error}</span>}
       </div>
 
       {result && (
-        <div className="grid gap-6 md:grid-cols-2">
-          <div className="rounded-2xl border backdrop-blur bg-white/60 dark:bg-black/30 p-4 space-y-2">
+        <div className="grid gap-4 sm:gap-6 md:grid-cols-2">
+          <div className="rounded-2xl border backdrop-blur bg-white/60 dark:bg-black/30 p-3 sm:p-4 space-y-2">
             <div className="flex items-center justify-between">
               <h2 className="font-semibold">Ingredients</h2>
               {result.grade && (
-                <span className="inline-flex items-center justify-center h-8 w-8 rounded-md bg-teal-600 text-white text-sm font-semibold">{result.grade}</span>
+                <span className={`inline-flex items-center justify-center h-7 w-7 sm:h-8 sm:w-8 rounded-md text-sm font-semibold ${gradeClass(result.grade)}`}>{result.grade}</span>
               )}
             </div>
             <div className="flex flex-wrap gap-2">
@@ -207,7 +250,7 @@ export default function AnalyzePage() {
             )}
           </div>
 
-          <div className="rounded-2xl border backdrop-blur bg-white/60 dark:bg-black/30 p-4">
+          <div className="rounded-2xl border backdrop-blur bg-white/60 dark:bg-black/30 p-3 sm:p-4">
             <h2 className="font-semibold mb-2">Nutrition</h2>
             <div className="overflow-x-auto">
               <table className="min-w-full text-sm">
@@ -223,11 +266,11 @@ export default function AnalyzePage() {
             </div>
           </div>
 
-          <div className="md:col-span-2 rounded-2xl border backdrop-blur bg-white/60 dark:bg-black/30 p-4 space-y-2">
+          <div className="md:col-span-2 rounded-2xl border backdrop-blur bg-white/60 dark:bg-black/30 p-3 sm:p-4 space-y-2">
             <h2 className="font-semibold">Health Analysis</h2>
             <p className="text-sm whitespace-pre-wrap">{result.health_analysis}</p>
             {!result.saved && (
-              <button onClick={onSubmit} className="mt-2 px-3 py-2 rounded-md bg-teal-600 text-white">Save Report</button>
+              <button onClick={onSubmit} className="w-full sm:w-auto mt-2 px-3 py-2 rounded-md bg-teal-600 text-white">Save Report</button>
             )}
           </div>
         </div>

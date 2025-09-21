@@ -197,7 +197,7 @@ export async function analyzeLabel(
             }
         } catch {}
 
-        const prompt = `You are given an image of a food product label. Carefully extract all text, especially ingredients and nutrition.\n\nYou are a nutrition assistant for EatWise. Analyze and return structured JSON.\n\nUser allergies (treat these as high-risk): ${JSON.stringify(userAllergies)}\n\nInclude:\n- ingredients: array of strings (clean, lowercase)\n- allergens: array of confirmed allergens (from label)\n- possibleAllergens: array of likely allergens inferred from ingredients (e.g., 'whey' -> 'milk', 'albumin' -> 'eggs', 'soy lecithin' -> 'soy', 'almonds' -> 'nuts', 'gluten', 'shellfish')\n- nutrition: object (calories, protein, fat, sugar, fiber, etc.)\n- health_analysis: short paragraph\n- grade: one of 'A','B','C','D','E' (Nutri-Score style, best=A, worst=E) based on overall nutrition.\n- isAllergic: boolean (true if any ingredient matches the user allergies above)\n- allergensMatched: array of strings (which of the user allergies matched)\n\nRespond ONLY with JSON.`;
+        const prompt = `You are given an image of a food product label. Carefully extract all text, especially ingredients and nutrition.\n\nYou are a nutrition assistant for EatWise. Analyze and return structured JSON.\n\nUser allergies (treat these as high-risk): ${JSON.stringify(userAllergies)}\n\nReturn ONLY JSON with these fields:\n- name: string (concise product/label name; if missing, derive from visible brand/product text)\n- ingredients: array of strings (clean, lowercase)\n- allergens: array of confirmed allergens (from label)\n- possibleAllergens: array of likely allergens inferred from ingredients (e.g., 'whey' -> 'milk', 'albumin' -> 'eggs', 'soy lecithin' -> 'soy', 'almonds' -> 'nuts', 'gluten', 'shellfish')\n- nutrition: object (calories, protein, fat, sugar, fiber, saturated_fat, sodium, etc.)\n- health_analysis: short paragraph\n- grade: one of 'A','B','C','D','E' (Nutri-Score style, best=A, worst=E) based on overall nutrition\n- isAllergic: boolean (true if any ingredient matches the user allergies above)\n- allergensMatched: array of strings (which of the user allergies matched)`;
         // 2) Call Gemini using inlineData (recommended when you already have base64)
         const body = {
             contents: [
@@ -232,6 +232,7 @@ export async function analyzeLabel(
         const nutrition = parsed.nutrition || {};
         const grade: string | null = parsed.grade || inferGrade(nutrition, ingredients);
         const health_analysis = parsed.health_analysis || "";
+        const name: string = (parsed as any)?.name || "Food Label";
 
         // 3) Evaluate allergy overlap deterministically as well
         const userId = context?.auth?.userId;
@@ -259,7 +260,7 @@ export async function analyzeLabel(
                             userId: user.id,
                             title: 'Food Label Analysis',
                             imageUrl: imageUrl,
-                            content: JSON.stringify({ ingredients, allergens, possibleAllergens, nutrition, health_analysis, grade, explanation, isAllergic: Boolean((parsed as any)?.isAllergic) || (allergensMatched.length>0), allergensMatched }),
+                            content: JSON.stringify({ name, ingredients, allergens, possibleAllergens, nutrition, health_analysis, grade, explanation, isAllergic: Boolean((parsed as any)?.isAllergic) || (allergensMatched.length>0), allergensMatched }),
                         }
                     })
                     saved = true;

@@ -20,6 +20,31 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "EatWise",
   description: "Food label analyser powered by Gemini",
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "https://eatwise.app"),
+  openGraph: {
+    title: "EatWise — AI-Powered Food Label Analysis",
+    description: "Scan food labels for allergens, nutrition and get a simple A–E Nutri-Score.",
+    url: "/",
+    siteName: "EatWise",
+    images: [
+      {
+        url: "/EatWise_Logo.png",
+        width: 1200,
+        height: 630,
+        alt: "EatWise",
+      },
+    ],
+    type: "website",
+    locale: "en_US",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "EatWise — AI-Powered Food Label Analysis",
+    description: "Scan food labels for allergens, nutrition and get a simple A–E Nutri-Score.",
+    images: ["/EatWise_Logo.png"],
+    site: "@eatwise",
+    creator: "@eatwise",
+  },
   icons: {
     icon: "/EatWise.ico",
     apple: "/EatWise.ico",

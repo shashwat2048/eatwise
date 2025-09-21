@@ -177,11 +177,6 @@ export default function AnalyzePage() {
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8 space-y-6">
-      {busy && (
-        <div className="fixed inset-0 z-40 pt-16 bg-white/70 dark:bg-black/70 backdrop-blur-sm flex items-center justify-center">
-          <LoaderFive text="Analyzing..." />
-        </div>
-      )}
       <div className="space-y-2">
         <h1 className="text-3xl font-semibold">Analyze Food Label</h1>
         <p className="text-sm text-gray-600 dark:text-gray-300">Capture with camera or upload from device, then let EatWise do the rest.</p>
@@ -189,11 +184,17 @@ export default function AnalyzePage() {
 
       <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
         <button disabled={!file || busy} onClick={onSubmit} className="w-full sm:w-auto px-5 py-2.5 rounded-md bg-teal-600 text-white hover:bg-teal-700 disabled:opacity-50">
-          {busy ? "Analyzing..." : "Send to Analyze"}
+          Send to Analyze
         </button>
         {error && <span className="text-red-600 text-sm">{error}</span>}
       </div>
 
+      {busy ? (
+        <div className="min-h-[40vh] grid place-items-center">
+          <LoaderFive text="Analyzing..." />
+        </div>
+      ) : (
+      <>
       <div className="grid gap-4 sm:gap-6 md:grid-cols-2">
         <div className="rounded-2xl border backdrop-blur bg-white/60 dark:bg-black/30 p-4 sm:p-6 space-y-3 relative overflow-hidden">
           <div className="relative z-10 space-y-3">
@@ -280,6 +281,8 @@ export default function AnalyzePage() {
             )}
           </div>
         </div>
+      )}
+      </>
       )}
     </div>
   );

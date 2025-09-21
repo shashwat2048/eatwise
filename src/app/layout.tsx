@@ -17,10 +17,13 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+// Resolve absolute app URL for social metadata (works on Vercel and locally)
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000");
+
 export const metadata: Metadata = {
   title: "EatWise",
   description: "Food label analyser powered by Gemini",
-  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "https://eatwise.app"),
+  metadataBase: new URL(APP_URL),
   openGraph: {
     title: "EatWise — AI-Powered Food Label Analysis",
     description: "Scan food labels for allergens, nutrition and get a simple A–E Nutri-Score.",
@@ -28,7 +31,7 @@ export const metadata: Metadata = {
     siteName: "EatWise",
     images: [
       {
-        url: "/EatWise_Logo.png",
+        url: `${APP_URL}/EatWise_Logo.png`,
         width: 1200,
         height: 630,
         alt: "EatWise",
@@ -41,7 +44,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "EatWise — AI-Powered Food Label Analysis",
     description: "Scan food labels for allergens, nutrition and get a simple A–E Nutri-Score.",
-    images: ["/EatWise_Logo.png"],
+    images: [`${APP_URL}/EatWise_Logo.png`],
     site: "@eatwise",
     creator: "@eatwise",
   },

@@ -1,103 +1,50 @@
 import Image from "next/image";
+import Link from "next/link";
+import { getUserFromCookies } from "@/lib/helper";
+import { auth } from "@clerk/nextjs/server";
 
-export default function Home() {
+export default async function Home() {
+  const user = await getUserFromCookies();
+  const { userId: clerkId } = await auth();
+
   return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
-
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+    <div className="relative">
+      <section className="relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-b from-teal-200/40 to-transparent dark:from-teal-700/20 pointer-events-none" />
+        <div className="mx-auto max-w-6xl px-4 py-16 sm:py-24">
+          <div className="grid gap-8 lg:grid-cols-2 lg:items-center">
+            <div className="space-y-5">
+              <div className="inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs backdrop-blur bg-white/60 dark:bg-black/30">Eat smarter with AI</div>
+              <h1 className="text-4xl sm:text-5xl font-semibold tracking-tight">Scan food labels. Get instant, healthy insights.</h1>
+              <p className="text-sm text-gray-600 dark:text-gray-300 max-w-prose">Upload or capture a label photo and EatWise highlights allergens, nutrition, and a simple A–E grade to guide your choices.</p>
+              <div className="flex gap-3">
+                <Link href="/analyze" className="px-5 py-3 rounded-md bg-teal-600 text-white hover:bg-teal-700">Start Analyzing</Link>
+                <Link href="/reports" className="px-5 py-3 rounded-md border">View Reports</Link>
+              </div>
+              <div className="text-xs text-gray-500">Welcome{user?.name ? `, ${user.name}` : ""}</div>
+            </div>
+            <div className="relative hidden lg:block">
+              <div className="absolute -top-10 -left-10 h-64 w-64 bg-teal-500/20 rounded-full blur-3xl" />
+              <Image src="/EatWise_Logo.png" alt="EatWise" width={420} height={420} className="" />
+            </div>
+          </div>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+      </section>
+
+      <section className="mx-auto max-w-6xl px-4 py-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <Link href="/profile" className="group block rounded-xl border p-6 backdrop-blur bg-white/60 dark:bg-black/30 hover:shadow-md transition">
+          <div className="font-medium mb-1">Profile</div>
+          <div className="text-sm text-gray-600 dark:text-gray-300">Manage allergies & fitness goals</div>
+        </Link>
+        <Link href="/analyze" className="group block rounded-xl border p-6 backdrop-blur bg-white/60 dark:bg-black/30 hover:shadow-md transition">
+          <div className="font-medium mb-1">Analyze</div>
+          <div className="text-sm text-gray-600 dark:text-gray-300">Scan or upload a label</div>
+        </Link>
+        <Link href="/reports" className="group block rounded-xl border p-6 backdrop-blur bg-white/60 dark:bg-black/30 hover:shadow-md transition">
+          <div className="font-medium mb-1">Reports</div>
+          <div className="text-sm text-gray-600 dark:text-gray-300">Review your past analyses</div>
+        </Link>
+      </section>
     </div>
   );
 }

@@ -1,13 +1,13 @@
-import gqlClient from "@/services/gql";
-import { verifyToken } from "@/services/jwt";
 import gql from "graphql-tag";
-import { cookies } from "next/headers";
+import { GraphQLClient } from "graphql-request";
+import { headers } from "next/headers";
 import { User } from "../../generated/prisma";
+import { auth } from "@clerk/nextjs/server";
 
 
 const GET_USER = gql`
-query GetUser($id: String!) {
-  getUser(id: $id) {
+query GetUser($clerkId: String!) {
+  getUser(clerkId: $clerkId) {
     id
     name
     email
@@ -19,19 +19,19 @@ query GetUser($id: String!) {
 `
 export async function getUserFromCookies(){
     try{
-        const cookiesStore = await cookies();
-        const token = cookiesStore.get("token")?.value;
-        if(!token){
+        const { userId } = await auth();
+        if(!userId){
             return null;
         }
-        const data = verifyToken(token);
-        if(!data){
-            return null;
-        }
-        const user : User = await gqlClient.request(GET_USER, {
-            id: data.id
-        })
-        return user;
+        type GetUserResponse = { getUser: User | null };
+        const hdrs = await headers();
+        const host = hdrs.get("host") || "localhost:3000";
+        const proto = hdrs.get("x-forwarded-proto") || "http";
+        const endpoint = `${proto}://${host}/api/graphql`;
+        const cookie = hdrs.get("cookie") || "";
+        const client = new GraphQLClient(endpoint, { headers: { cookie } });
+        const result = await client.request<GetUserResponse>(GET_USER, { clerkId: userId })
+        return result.getUser ?? null;
     }catch(err){
         console.error(err);
         return null;

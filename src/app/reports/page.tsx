@@ -93,7 +93,7 @@ export default function ReportsPage() {
             const possible = parsed?.possibleAllergens || [];
             const name = parsed?.name || "Food Label";
             return (
-              <details key={r.id} className="group rounded-2xl border backdrop-blur bg-white/60 dark:bg-black/30 p-3 sm:p-4">
+              <details key={r.id} className="group rounded-2xl border backdrop-blur bg-white/60 dark:bg-black/30 p-3 sm:p-4 hover:scale-101 hover:border-teal-600 transition transform duration-300">
                 <summary className="cursor-pointer flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2 min-w-0">
                     <span className="font-medium truncate max-w-[60vw] sm:max-w-[40vw]">{name}</span>

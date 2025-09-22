@@ -183,7 +183,7 @@ export default function AnalyzePage() {
       </div>
 
       <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
-        <button disabled={!file || busy} onClick={onSubmit} className="w-full sm:w-auto px-5 py-2.5 rounded-md bg-teal-600 text-white hover:bg-teal-700 disabled:opacity-50">
+        <button disabled={!file || busy} onClick={onSubmit} className="w-full sm:w-auto px-5 py-2.5 rounded-md bg-teal-600 text-white hover:bg-teal-700 disabled:opacity-50 transition transform duration-300">
           Send to Analyze
         </button>
         {error && <span className="text-red-600 text-sm">{error}</span>}
@@ -214,7 +214,7 @@ export default function AnalyzePage() {
               <video ref={videoRef} className="relative z-10 w-full h-full object-contain" playsInline muted />
             </div>
             <div className="flex flex-wrap gap-2">
-              <button onClick={startCamera} className="w-full sm:w-auto justify-center px-3 py-2 rounded-md bg-teal-600 text-white hover:bg-teal-700">Start Camera</button>
+              <button onClick={startCamera} className="w-full sm:w-auto justify-center px-3 py-2 rounded-md bg-teal-600 text-white hover:bg-teal-700 transition transform duration-300">Start Camera</button>
               <button onClick={captureFrame} className="w-full sm:w-auto justify-center px-3 py-2 rounded-md border border-neutral-200/60 dark:border-neutral-800/60">Capture</button>
               <button onClick={stopCamera} className="w-full sm:w-auto justify-center px-3 py-2 rounded-md border border-neutral-200/60 dark:border-neutral-800/60">Stop</button>
             </div>
@@ -229,7 +229,7 @@ export default function AnalyzePage() {
           {preview && (
             <div className="space-y-2">
               <img src={preview} alt="preview" className="w-full rounded-xl border" />
-              <button onClick={clearImage} className="w-full sm:w-auto px-3 py-2 rounded-md border">Clear Image</button>
+              <button onClick={clearImage} className="w-full sm:w-auto px-3 py-2 rounded-md border transition transform duration-300">Clear Image</button>
             </div>
           )}
         </div>
@@ -277,7 +277,7 @@ export default function AnalyzePage() {
             <h2 className="font-semibold">Health Analysis</h2>
             <p className="text-sm whitespace-pre-wrap">{result.health_analysis}</p>
             {!result.saved && (
-              <button onClick={onSubmit} className="w-full sm:w-auto mt-2 px-3 py-2 rounded-md bg-teal-600 text-white">Save Report</button>
+              <button onClick={onSubmit} className="w-full sm:w-auto mt-2 px-3 py-2 rounded-md bg-teal-600 text-white transition transform duration-300 hover:bg-teal-700">Save Report</button>
             )}
           </div>
         </div>

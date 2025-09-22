@@ -3,6 +3,7 @@ import Link from "next/link";
 import { getUserFromCookies } from "@/lib/helper";
 import { auth } from "@clerk/nextjs/server";
 import { AnimatedShinyText } from "@/components/ui/animated-shiny-text";
+import { ArrowRightIcon } from "lucide-react";
 
 export default async function Home() {
   const user = await getUserFromCookies();
@@ -19,8 +20,8 @@ export default async function Home() {
               <h1 className="text-3xl sm:text-4xl md:text-5xl font-semibold tracking-tight leading-tight">Scan food labels. Get instant, healthy insights.</h1>
               <p className="text-sm sm:text-base text-gray-600 dark:text-gray-300 max-w-prose">Upload or capture a label photo and EatWise highlights allergens, nutrition, and a simple A–E grade to guide your choices.</p>
               <div className="flex flex-col sm:flex-row gap-3 sm:items-center">
-                <Link href="/analyze" className="w-full sm:w-auto text-center px-5 py-3 rounded-md bg-teal-600 text-white hover:bg-teal-700">Start Analyzing</Link>
-                <Link href="/reports" className="w-full sm:w-auto text-center px-5 py-3 rounded-md border">View Reports</Link>
+                <Link href="/analyze" className="w-full sm:w-auto text-center px-5 py-3 rounded-md bg-teal-600 text-white hover:bg-teal-700 flex items-center justify-center gap-2 transition transform duration-300">Start Analyzing</Link>
+                <Link href="/reports" className="w-full sm:w-auto text-center px-5 py-3 rounded-md border hover:border-teal-600 transition transform duration-300">View Reports</Link>
               </div>
               {user && <div className="text-xs text-gray-500">Welcome{user?.name ? `, ${user.name}` : ""}</div>}
             </div>

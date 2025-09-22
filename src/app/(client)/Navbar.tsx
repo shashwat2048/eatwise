@@ -13,8 +13,8 @@ export default function Navbar() {
       <div className="mx-auto max-w-6xl px-4 h-16 flex items-center justify-between">
       <div className="flex items-center gap-4">
         <Link href="/" className="flex items-center gap-2 font-semibold">
-          <Image src="/EatWise_Logo.png" alt="EatWise" width={28} height={28} className="rounded" />
-          <span className="sm:inline ">EatWise</span>
+          <Image src="/EatWise_Logo.png" alt="EatWise" width={30} height={30} className="rounded" />
+          <span className="sm:inline text-xl">EatWise</span>
         </Link>
         <nav className="hidden justify-center sm:flex items-center gap-4 text-sm">
           <Link href="/" className="hover:text-primary transition transform duration-200">Home</Link>

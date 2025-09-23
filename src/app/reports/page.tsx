@@ -4,6 +4,7 @@ import gql from "graphql-tag";
 import { useAuth } from "@clerk/nextjs";
 import { ChevronDown } from "lucide-react";
 import { LoaderFive } from "@/components/ui/loader";
+import AccessGateBanner from "@/components/ui/access-gate-banner";
 
 type Report = {
   id: string;
@@ -76,6 +77,7 @@ export default function ReportsPage() {
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-8 space-y-6">
+      <AccessGateBanner />
       <div className="space-y-2">
         <h1 className="text-3xl font-semibold">Your Reports</h1>
         <p className="text-sm text-gray-600 dark:text-gray-300">Recent label analyses with grades, allergens and nutrition.</p>

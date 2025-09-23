@@ -3,7 +3,15 @@ import { NextResponse } from 'next/server';
 import { GraphQLClient, gql } from 'graphql-request';
 import { signToken } from '@/services/jwt';
 
-const isPublicRoute = createRouteMatcher(['/sign-in(.*)', '/api/webhooks(.*)','/'])
+const isPublicRoute = createRouteMatcher([
+  '/sign-in(.*)',
+  '/api/webhooks(.*)',
+  '/',
+  '/analyze(.*)',
+  '/api/graphql(.*)',
+  '/api/analyze(.*)',
+  '/eatwise-ai-PRO(.*)'
+])
 
 export default clerkMiddleware(async (auth, req) => {
   if (!isPublicRoute(req)) {

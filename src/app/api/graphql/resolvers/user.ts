@@ -248,7 +248,7 @@ export async function analyzeLabel(
             }
         } catch {}
 
-        // 4) Save report
+        // 4) Save report and increment analysesDone for free users
         let saved = false;
         let reportId: string | null = null;
         try {
@@ -265,6 +265,10 @@ export async function analyzeLabel(
                     })
                     saved = true;
                     reportId = r.id;
+                    // increment analysesDone if user is on free plan
+                    if ((user as any).role !== 'pro') {
+                        await db.user.update({ where: { id: user.id }, data: { analysesDone: (user.analysesDone || 0) + 1 } });
+                    }
                 }
             }
         } catch (e) { console.error(e); }

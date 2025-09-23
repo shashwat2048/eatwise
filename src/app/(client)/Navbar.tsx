@@ -4,10 +4,31 @@ import Image from "next/image";
 import { SignedIn, SignedOut, UserButton } from "@clerk/nextjs";
 import { ModeToggle } from "@/components/ui/theme-toggle-btn";
 import { Settings2 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { ensureGuestSession } from "@/lib/guest";
+import { useRouter } from "next/navigation";
 
 export default function Navbar() {
   const [open, setOpen] = useState(false);
+  const router = useRouter();
+  const [role, setRole] = useState<'guest'|'free'|'pro'>('guest');
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const q = `query { myQuota { role unlimited } }`;
+        const res = await fetch('/api/graphql', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include', body: JSON.stringify({ query: q }) });
+        const j = await res.json();
+        const r = j?.data?.myQuota?.role as string | undefined;
+        if (mounted && r) setRole(r === 'pro' ? 'pro' : 'free');
+      } catch {}
+    })();
+    return () => { mounted = false };
+  }, []);
+  function onGuest() {
+    ensureGuestSession();
+    router.push('/analyze');
+  }
   return (
     <header className="sticky top-0 z-50 overflow-visible backdrop-blur-xl supports-[backdrop-filter]:bg-white/40 dark:supports-[backdrop-filter]:bg-black/30 bg-white/50 dark:bg-black/20 border-b border-white/20">
       <div className="mx-auto max-w-6xl px-4 h-16 flex items-center justify-between">
@@ -52,9 +73,15 @@ export default function Navbar() {
           <Settings2 className="h-4 w-4" />
         </Link>
         <SignedOut>
-          <Link href="/sign-in" className="text-sm hover:text-primary transition transform duration-200">Sign In</Link>
+          <div className="flex items-center gap-3">
+            <button onClick={onGuest} className="text-sm rounded-md border px-2.5 py-1.5 hover:bg-accent transition">Guest</button>
+            <Link href="/sign-in" className="text-sm hover:text-primary transition transform duration-200">Sign In</Link>
+          </div>
         </SignedOut>
         <SignedIn>
+          {role !== 'pro' && (
+            <Link href="/eatwise-ai-PRO" className="hidden sm:inline-block text-sm rounded-md border px-2.5 py-1.5 hover:bg-accent transition">Upgrade</Link>
+          )}
           <UserButton />
         </SignedIn>
       </div>

@@ -6,6 +6,8 @@ import { ClerkProvider } from '@clerk/nextjs'
 import { ThemeProvider } from "next-themes";
 import { Toaster } from "sonner";
 import Navbar from "./(client)/Navbar";
+import Script from "next/script";
+import RouteProgress from "@/components/ui/route-progress";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -65,7 +67,9 @@ export default function RootLayout({
       <html lang="en" suppressHydrationWarning>
         <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
           <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+            <Script async src="https://js.stripe.com/v3/buy-button.js" />
             <Navbar />
+            <RouteProgress />
             <main>{children}</main>
             <Toaster richColors position="top-right" />
           </ThemeProvider>

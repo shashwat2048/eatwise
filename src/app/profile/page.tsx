@@ -6,6 +6,7 @@ import { GraphQLClient } from "graphql-request";
 import { toast } from "sonner";
 import { LoaderFive } from "@/components/ui/loader";
 import { GridPattern } from "@/components/ui/file-upload";
+import { getGuestAnalyses, clearGuestAnalyses } from "@/lib/guest";
 
 type Profile = {
   name?: string | null;
@@ -36,6 +37,9 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(true);
   const [initial, setInitial] = useState<Profile | null>(null);
   const client = useMemo(() => new GraphQLClient("/api/graphql", { credentials: "include" }), []);
+  const [coupon, setCoupon] = useState("");
+  const [upgrading, setUpgrading] = useState(false);
+  const [quota, setQuota] = useState<{ role: string; used: number; max: number; remaining: number; unlimited: boolean } | null>(null);
 
   const { register, handleSubmit, setValue, watch } = useForm<Profile>({
     defaultValues: { fitnessGoal: "", allergies: [] },
@@ -58,6 +62,31 @@ export default function ProfilePage() {
     })();
     return () => { mounted = false };
   }, [client, setValue]);
+
+  // Toast payment status based on query param
+  useEffect(() => {
+    try {
+      const sp = new URLSearchParams(window.location.search);
+      const up = sp.get('upgrade');
+      if (up === 'success') {
+        toast.success('Payment successful. You are now on Pro.');
+      } else if (up === 'cancelled') {
+        toast('Checkout cancelled');
+      }
+    } catch {}
+  }, []);
+
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const q = gql`query { myQuota { role used max remaining unlimited } }`;
+        const res = await client.request<{ myQuota: any }>(q);
+        if (mounted) setQuota(res.myQuota);
+      } catch {}
+    })();
+    return () => { mounted = false };
+  }, [client]);
 
   const onSubmit = handleSubmit(async (values) => {
     try {
@@ -153,6 +182,50 @@ export default function ProfilePage() {
                 <span className="text-xs text-gray-500">We’ll tailor analyses to your preferences.</span>
               </div>
             </form>
+            <div className="mt-6">
+              <button onClick={async()=>{
+                try{
+                  const items = getGuestAnalyses();
+                  if(!items.length){ toast.info('No guest analyses found'); return; }
+                  const m = gql`mutation Migrate($items: [GuestAnalysisInput!]!){ migrateGuestAnalyses(items: $items){ success message } }`;
+                  const payload = items.map(it=>({ ingredients: it.ingredients, allergens: it.allergens, possibleAllergens: it.possibleAllergens||[], nutrition: JSON.stringify(it.nutrition||{}), health_analysis: it.health_analysis||'', grade: it.grade||null }));
+                  const res = await client.request<{ migrateGuestAnalyses: { success: boolean; message?: string } }>(m, { items: payload });
+                  toast.success(res.migrateGuestAnalyses.message || 'Migrated');
+                  clearGuestAnalyses();
+                }catch(err:any){
+                  toast.error(err?.message || 'Migration failed');
+                }
+              }} className="px-4 py-2 rounded-md border">Migrate guest analyses to account</button>
+            </div>
+            <div className="mt-8 border-t pt-6">
+              <div className="flex items-center justify-between mb-2">
+                <div>
+                  <h2 className="font-semibold">Upgrade to Pro</h2>
+                  <p className="text-xs text-neutral-600 dark:text-neutral-300">Unlimited analyses. One-time purchase.</p>
+                </div>
+                {quota && (
+                  <span className="text-xs rounded-md border px-2 py-1">Current plan: {quota.role}{quota.unlimited ? ' (unlimited)' : ''}</span>
+                )}
+              </div>
+              <div className="flex flex-col sm:flex-row gap-2">
+                <input value={coupon} onChange={(e)=>setCoupon(e.target.value)} placeholder="Coupon code (optional)" className="flex-1 rounded-md border border-neutral-200/60 dark:border-neutral-800/60 px-3 py-2 backdrop-blur bg-white/70 dark:bg-black/30" />
+                <button disabled={upgrading} onClick={async ()=>{
+                  try{
+                    setUpgrading(true);
+                    const m = gql`mutation Upgrade($coupon: String){ upgradeToPro(coupon: $coupon){ success message checkoutUrl } }`;
+                    const res = await client.request<{ upgradeToPro: { success: boolean; message?: string; checkoutUrl?: string|null } }>(m, { coupon: coupon || null });
+                    if(!res.upgradeToPro.success || !res.upgradeToPro.checkoutUrl){
+                      throw new Error(res.upgradeToPro.message || 'Failed to start checkout');
+                    }
+                    window.location.href = res.upgradeToPro.checkoutUrl as string;
+                  }catch(err:any){
+                    toast.error(err?.message || 'Failed to start checkout');
+                  }finally{
+                    setUpgrading(false);
+                  }
+                }} className="px-4 py-2 rounded-md bg-teal-600 text-white hover:bg-teal-700 disabled:opacity-50">{upgrading? 'Redirecting...' : 'Upgrade'}</button>
+              </div>
+            </div>
           </div>
         </div>
       </div>

@@ -1,6 +1,7 @@
 import db from "@/services/prisma"
 import { uploadImageBase64 } from "@/services/cloudinary"
 import { getAuth } from "@clerk/nextjs/server"
+import { verifyToken } from "@/services/jwt"
 
 export async function me(_: any, __: any, context: { auth?: { userId?: string } }) {
     try {
@@ -130,16 +131,28 @@ export async function createOrUpdateProfile(
 
 export async function updateUserProfile(
     _: any,
-    args: { allergies?: string[] | null; fitnessGoal?: string | null },
+    args: { allergies?: string[] | null; fitnessGoal?: string | null; name?: string | null },
     __: any,
-    context: { auth?: { userId?: string } }
+    context: { auth?: { userId?: string }; req?: Request }
 ) {
     try {
-        const clerkId = context?.auth?.userId;
+        let clerkId = context?.auth?.userId;
+        if (!clerkId) {
+            try {
+                const cookie = (context as any)?.req?.headers?.get('cookie') || '';
+                const match = cookie.match(/(?:^|; )token=([^;]+)/);
+                const raw = match ? decodeURIComponent(match[1]) : null;
+                if (raw) {
+                    const t = verifyToken(raw);
+                    if (t?.id) clerkId = t.id;
+                }
+            } catch {}
+        }
         if (!clerkId) return { success: false, message: "Unauthorized" };
         const data: any = {};
         if (typeof args.allergies !== 'undefined') data.allergies = args.allergies || [];
         if (typeof args.fitnessGoal !== 'undefined') data.fitnessGoal = args.fitnessGoal || null;
+        if (typeof args.name !== 'undefined' && args.name !== null) data.name = String(args.name).trim().slice(0, 80);
 
         // Ensure user exists; create if missing (use webhook in prod but safe-guard here)
         const existing = await db.user.findUnique({ where: { clerkId } });
@@ -148,7 +161,7 @@ export async function updateUserProfile(
                 data: {
                     clerkId,
                     email: `${clerkId}@example.com`,
-                    name: "User",
+                    name: data.name || "User",
                     ...data,
                 },
             });

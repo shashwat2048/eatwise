@@ -16,8 +16,8 @@ datasource db {
 
 model User {
   id            String   @id @default(auto()) @map("_id") @db.ObjectId
-  clerkId       String  @unique
-  name          String   @default("User")
+  clerkId       String   @unique
+  name          String   @default("Wise Eater")
   email         String   @unique
   fitnessGoal   String?
   allergies     String[]

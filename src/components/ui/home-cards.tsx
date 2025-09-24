@@ -19,7 +19,7 @@ export default function HomeCards() {
   }, []);
 
   return (
-    <section className="mx-auto max-w-6xl px-4 py-10 sm:py-12 grid gap-4 sm:gap-5 sm:grid-cols-2 lg:grid-cols-3">
+    <section className="mx-auto max-w-6xl px-4 pt-0 sm:pt-2 pb-10 sm:pb-12 grid gap-4 sm:gap-5 sm:grid-cols-2 lg:grid-cols-3">
       <Link href="/analyze" className="group w-full block rounded-xl border p-5 sm:p-6 backdrop-blur bg-white/60 dark:bg-black/30 hover:shadow-md transition bg-gradient-to-b from-teal-100/40 to-transparent dark:from-teal-700/20">
         <div className="font-medium mb-1">Analyze</div>
         <div className="text-sm text-gray-600 dark:text-gray-300">Scan or upload a label</div>
@@ -41,24 +41,6 @@ export default function HomeCards() {
           <li>Upgrade to Pro for unlimited analyses.</li>
         </ul>
       </div>
-      {/* Recent reports */}
-      {recent.length > 0 && (
-        <div className="col-span-full">
-          <div className="mb-2 font-medium">Recent reports</div>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {recent.map(r => {
-              let name = 'Food Label';
-              try { name = JSON.parse(r.content||'{}')?.name || 'Food Label'; } catch {}
-              return (
-                <Link href="/reports" key={r.id} className="rounded-xl border p-4 backdrop-blur bg-white/60 dark:bg-black/30 hover:shadow-md transition">
-                  <div className="text-sm font-medium truncate">{name}</div>
-                  <div className="text-xs text-gray-500">{new Date(r.createdAt).toLocaleString()}</div>
-                </Link>
-              );
-            })}
-          </div>
-        </div>
-      )}
     </section>
   );
 }

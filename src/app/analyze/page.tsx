@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { FileUpload } from "@/components/ui/file-upload";
 import { GridPattern } from "@/components/ui/file-upload";
 import { LoaderFive } from "@/components/ui/loader";
-import { canGuestAnalyze, ensureGuestSession, getGuestHeaders, incrementGuestAnalyses, MAX_FREE_ANALYSES, getRemainingAnalyses, saveGuestAnalysis } from "@/lib/guest";
+ 
 import { StepHeader } from "@/components/ui/step-header";
 import { SaveShareBar } from "@/components/ui/save-share-bar";
 import { BlurIndicator } from "@/components/ui/blur-indicator";
@@ -62,7 +62,6 @@ export default function AnalyzePage() {
   }, []);
 
   useEffect(() => {
-    // Fetch quota for signed-in users; guests rely on localStorage display
     async function fetchQuota() {
       try {
         const query = `query { myQuota { role used max remaining unlimited } }`;
@@ -171,21 +170,15 @@ export default function AnalyzePage() {
     setBusy(true);
     setError(null);
     try {
-      // Ensure guest session exists if user is not signed in (middleware allows guests here)
-      ensureGuestSession();
-      const gate = canGuestAnalyze();
       const freeLimitHit = quota && !quota.unlimited && quota.role === 'free' && quota.remaining <= 0;
-      if (!gate.ok || freeLimitHit) {
-        toast.error(`Free guest limit reached. Please sign in to continue.`);
+      if (freeLimitHit) {
+        toast.error(`Free plan limit reached. Upgrade to Pro for unlimited analyses.`);
         setBusy(false);
         return;
       }
       const base64 = await fileToBase64(file);
       const query = `mutation Analyze($imageBase64: String!) { analyzeLabel(imageBase64: $imageBase64) { imageUrl ingredients allergens possibleAllergens analysisJson grade explanation saved reportId } }`;
-      const used = (canGuestAnalyze().remaining < MAX_FREE_ANALYSES) ? (MAX_FREE_ANALYSES - getRemainingAnalyses()) : 0;
-      const guestHeaders = getGuestHeaders();
-      const headers: Record<string, string> = { 'Content-Type': 'application/json', ...guestHeaders };
-      if (guestHeaders["x-guest"]) headers["x-guest-used"] = String(used);
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
       const res = await fetch('/api/graphql', {
         method: 'POST',
         headers,
@@ -203,8 +196,7 @@ export default function AnalyzePage() {
       }
       const data = json?.data?.analyzeLabel;
       if (!data) throw new Error('No result');
-      incrementGuestAnalyses();
-      // Refresh quota if signed-in free user (server increments analysesDone)
+      // Refresh quota after analysis (server increments analysesDone for free)
       try {
         const q = `query { myQuota { role used max remaining unlimited } }`;
         const r2 = await fetch('/api/graphql', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include', body: JSON.stringify({ query: q }) });
@@ -224,17 +216,7 @@ export default function AnalyzePage() {
       toast.success(data.saved ? "Report saved" : "Analysis ready");
       // haptic / visual small feedback on success
       try { if (navigator.vibrate) navigator.vibrate(20); } catch {}
-      // If guest, store locally
-      if (guestHeaders["x-guest"]) {
-        saveGuestAnalysis({
-          ingredients: structured.ingredients,
-          allergens: structured.allergens,
-          possibleAllergens: structured.possibleAllergens,
-          nutrition: structured.nutrition,
-          health_analysis: structured.health_analysis,
-          grade: structured.grade || null,
-        });
-      }
+      // Guests removed: storage handled by server for authenticated users only
       if (data.saved && data.reportId) {
         // Redirect to reports to view full analysis
         setTimeout(() => router.push('/reports'), 400);
@@ -300,18 +282,14 @@ export default function AnalyzePage() {
         <h1 className="text-3xl font-semibold">Analyze Food Label</h1>
         <p className="text-sm text-gray-600 dark:text-gray-300">Capture with camera or upload from device. Make sure label text is clear and fills the frame.</p>
         <div className="text-xs text-gray-500 space-y-0.5">
-          <p>Guest remaining: {getRemainingAnalyses()} of {MAX_FREE_ANALYSES}</p>
           {quota && (
             <p>User plan: {quota.role} {quota.unlimited ? '(unlimited)' : `(remaining ${quota.remaining} of ${quota.max})`}</p>
           )}
         </div>
-        {!quota || (!quota.unlimited && quota.role==='free') ? (
-          <LimitNotice plan={quota ? 'free' : 'guest'} remaining={quota ? quota.remaining : getRemainingAnalyses()} max={quota ? quota.max : MAX_FREE_ANALYSES} />
-        ) : null}
       </div>
 
       <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
-        <button disabled={!file || busy || (quota && !quota.unlimited && quota.role==='free' && quota.remaining<=0) || (!canGuestAnalyze().ok)} onClick={onSubmit} className="w-full sm:w-auto px-5 py-2.5 rounded-md bg-teal-600 text-white hover:bg-teal-700 disabled:opacity-50 transition transform duration-300">
+        <button disabled={!file || !!busy || !!(quota && !quota.unlimited && quota.role==='free' && quota.remaining<=0)} onClick={onSubmit} className="w-full sm:w-auto px-5 py-2.5 rounded-md bg-teal-600 text-white hover:bg-teal-700 disabled:opacity-50 transition transform duration-300">
           Send to Analyze
         </button>
         {error && <span className="text-red-600 text-sm">{error}</span>}
@@ -412,7 +390,7 @@ export default function AnalyzePage() {
             <h2 className="font-semibold">Health Analysis</h2>
             <p className="text-sm whitespace-pre-wrap">{result.health_analysis}</p>
             {(() => {
-              const plan: 'guest'|'free'|'pro' = quota ? (quota.unlimited ? 'pro' : (quota.role === 'free' ? 'free' : 'pro')) : 'guest';
+              const plan: 'free'|'pro' = quota ? (quota.unlimited ? 'pro' : 'free') : 'free';
               return (<SaveShareBar
               canSave={!result.saved}
               onSave={onSubmit}

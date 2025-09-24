@@ -1,12 +1,11 @@
 "use client";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
-import gql from "graphql-tag";
-import { GraphQLClient } from "graphql-request";
 import { toast } from "sonner";
 import { LoaderFive } from "@/components/ui/loader";
 import { GridPattern } from "@/components/ui/file-upload";
-import { getGuestAnalyses, clearGuestAnalyses } from "@/lib/guest";
+ 
 
 type Profile = {
   name?: string | null;
@@ -14,44 +13,53 @@ type Profile = {
   allergies: string[];
 };
 
-const GET_PROFILE = gql`
-  query GetProfile {
-    getProfile {
-      name
-      fitnessGoal
-      allergies
-    }
-  }
-`;
+const GET_PROFILE = `query GetProfile { getProfile { name fitnessGoal allergies } }`;
 
-const SAVE_PROFILE = gql`
-  mutation SaveProfile($fitnessGoal: String, $allergies: [String!]) {
-    updateUserProfile(fitnessGoal: $fitnessGoal, allergies: $allergies) {
-      success
-      message
-    }
+const GET_ME = `query Me { me { name email } }`;
+
+const SAVE_PROFILE = `mutation SaveProfile($name: String, $fitnessGoal: String, $allergies: [String!]) {
+  updateUserProfile(name: $name, fitnessGoal: $fitnessGoal, allergies: $allergies) {
+    success
+    message
   }
-`;
+}`;
 
 export default function ProfilePage() {
   const [loading, setLoading] = useState(true);
   const [initial, setInitial] = useState<Profile | null>(null);
-  const client = useMemo(() => new GraphQLClient("/api/graphql", { credentials: "include" }), []);
-  const [coupon, setCoupon] = useState("");
+  const nav = useRouter();
+
+  async function gqlFetch<T>(query: string, variables?: Record<string, any>): Promise<T> {
+    const res = await fetch('/api/graphql', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ query, variables }),
+    });
+    if (!res.ok) throw new Error('Request failed');
+    const json = await res.json();
+    if (json?.errors?.length) throw new Error(json.errors[0]?.message || 'GraphQL error');
+    return json.data as T;
+  }
   const [upgrading, setUpgrading] = useState(false);
   const [quota, setQuota] = useState<{ role: string; used: number; max: number; remaining: number; unlimited: boolean } | null>(null);
+  const [meEmail, setMeEmail] = useState<string | null>(null);
+  const [meName, setMeName] = useState<string | null>(null);
+  const [cardMode, setCardMode] = useState<boolean>(true);
+  const router = useRouter();
 
   const { register, handleSubmit, setValue, watch } = useForm<Profile>({
-    defaultValues: { fitnessGoal: "", allergies: [] },
+    defaultValues: { name: "", fitnessGoal: "", allergies: [] },
   });
 
   useEffect(() => {
     let mounted = true;
     (async () => {
       try {
-        const data = await client.request<{ getProfile: Profile | null }>(GET_PROFILE);
+        const data = await gqlFetch<{ getProfile: Profile | null }>(GET_PROFILE);
         if (!mounted) return;
         setInitial(data.getProfile ?? { name: "", fitnessGoal: "", allergies: [] });
+        setValue("name", data.getProfile?.name ?? "");
         setValue("fitnessGoal", data.getProfile?.fitnessGoal ?? "");
         setValue("allergies", data.getProfile?.allergies ?? []);
       } catch (err) {
@@ -61,7 +69,7 @@ export default function ProfilePage() {
       }
     })();
     return () => { mounted = false };
-  }, [client, setValue]);
+  }, [setValue]);
 
   // Toast payment status based on query param
   useEffect(() => {
@@ -80,42 +88,69 @@ export default function ProfilePage() {
     let mounted = true;
     (async () => {
       try {
-        const q = gql`query { myQuota { role used max remaining unlimited } }`;
-        const res = await client.request<{ myQuota: any }>(q);
+        const res = await gqlFetch<{ myQuota: any }>(`query { myQuota { role used max remaining unlimited } }`);
         if (mounted) setQuota(res.myQuota);
+      } catch {}
+      try {
+        const r = await gqlFetch<{ me?: { name?: string|null; email?: string|null } | null }>(GET_ME);
+        if (mounted) {
+          setMeEmail(r?.me?.email || null);
+          setMeName(r?.me?.name || null);
+        }
       } catch {}
     })();
     return () => { mounted = false };
-  }, [client]);
+  }, []);
 
   const onSubmit = handleSubmit(async (values) => {
     try {
-      // Try GraphQL first
+      const res = await gqlFetch<{ updateUserProfile: { success: boolean; message?: string } }>(
+        SAVE_PROFILE,
+        { name: values.name || null, fitnessGoal: values.fitnessGoal || null, allergies: values.allergies || [] }
+      );
+      if (!res.updateUserProfile.success) throw new Error(res.updateUserProfile.message || 'Failed to save');
+      toast.success("Preferences saved");
+      // Refetch latest profile and refresh form + card state
       try {
-        const res = await client.request<{ updateUserProfile: { success: boolean; message?: string } }>(
-          SAVE_PROFILE,
-          { fitnessGoal: values.fitnessGoal || null, allergies: values.allergies || [] }
-        );
-        if (res.updateUserProfile.success) {
-          toast.success("Preferences saved");
+        const fresh = await gqlFetch<{ getProfile: Profile | null }>(GET_PROFILE);
+        const next = fresh.getProfile ?? { name: "", fitnessGoal: "", allergies: [] };
+        setInitial(next);
+        setValue("name", next.name ?? "");
+        setValue("fitnessGoal", next.fitnessGoal ?? "");
+        setValue("allergies", next.allergies ?? []);
+      } catch {}
+      setCardMode(true);
+      try { nav.refresh(); } catch {}
+    } catch (err: any) {
+      // Fallback to REST if GraphQL auth fails
+      const msg = String(err?.message || '').toLowerCase();
+      if (msg.includes('unauthorized')) {
+        try {
+          const resp = await fetch('/api/profile', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({ name: values.name || null, fitnessGoal: values.fitnessGoal || null, allergies: values.allergies || [] }),
+          });
+          const json = await resp.json();
+          if (!resp.ok || !json?.success) throw new Error(json?.message || 'Failed');
+          toast.success('Preferences saved');
+          try {
+            const fresh = await gqlFetch<{ getProfile: Profile | null }>(GET_PROFILE);
+            const next = fresh.getProfile ?? { name: "", fitnessGoal: "", allergies: [] };
+            setInitial(next);
+            setValue("name", next.name ?? "");
+            setValue("fitnessGoal", next.fitnessGoal ?? "");
+            setValue("allergies", next.allergies ?? []);
+          } catch {}
+          setCardMode(true);
+          try { nav.refresh(); } catch {}
+          return;
+        } catch (e:any) {
+          toast.error(e?.message || 'Failed to save Preferences');
           return;
         }
-      } catch {}
-
-      // Fallback to REST API
-      const resp = await fetch('/api/profile', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ fitnessGoal: values.fitnessGoal || null, allergies: values.allergies || [] }),
-      });
-      const json = await resp.json();
-      if (json?.success) {
-        toast.success('Preferences saved');
-      } else {
-        throw new Error(json?.message || 'Failed to save');
       }
-    } catch (err: any) {
       toast.error(err?.message || "Failed to save Preferences");
     }
   });
@@ -137,10 +172,48 @@ export default function ProfilePage() {
           </div>
           <div className="relative z-10">
             <div className="mb-6">
-              <h1 className="text-2xl font-semibold">Your Preferences</h1>
-              <p className="text-sm text-neutral-600 dark:text-neutral-300 mt-1">Tell EatWise about your goals and allergies for smarter analyses.</p>
+              <h1 className="text-2xl font-semibold">Your Profile</h1>
+              <p className="text-sm text-neutral-600 dark:text-neutral-300 mt-1">Manage your details and preferences.</p>
             </div>
-            <form onSubmit={onSubmit} className="grid gap-6">
+
+            {/* Read-only card view */}
+            <div className={`grid gap-3 mb-4 ${cardMode ? '' : 'hidden'}`}>
+              <div className="relative rounded-2xl border p-5 bg-white/80 dark:bg-black/30 shadow-md hover:shadow-lg transition-shadow overflow-hidden">
+                <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-teal-500 via-emerald-500 to-lime-500" />
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 rounded-full bg-teal-600 text-white grid place-items-center font-semibold">
+                      {(initial?.name || meName || 'U')?.slice(0,1)?.toUpperCase()}
+                    </div>
+                    <div className="text-sm">
+                      <div className="font-medium">{initial?.name || meName || '—'}</div>
+                      <div className="text-neutral-500">{meEmail || '—'}</div>
+                    </div>
+                  </div>
+                  <span className={`${quota?.role==='pro' ? 'bg-gradient-to-r from-amber-400 to-yellow-500 text-black border-amber-300' : 'bg-teal-50 text-teal-700 border-teal-200 dark:bg-teal-900/30 dark:text-teal-200 dark:border-teal-800'} text-xs px-2.5 py-1 rounded-full border`}>
+                    {quota?.role || 'free'}{quota?.unlimited ? ' • unlimited' : ''}
+                  </span>
+                </div>
+                <div className="grid gap-1.5 text-sm">
+                  <div><span className="font-medium">Fitness goal:</span> {initial?.fitnessGoal || '—'}</div>
+                  <div><span className="font-medium">Allergies:</span> {(initial?.allergies||[]).length ? initial!.allergies.join(', ') : '—'}</div>
+                </div>
+              </div>
+              <div>
+                <button type="button" onClick={()=>setCardMode(false)} className="px-4 py-2 rounded-md border hover:bg-neutral-100 dark:hover:bg-neutral-900 transition">Edit</button>
+              </div>
+            </div>
+
+            {/* Edit form */}
+            <form onSubmit={onSubmit} className={`grid gap-6 ${cardMode ? 'hidden' : ''}`}>
+              <div className="grid gap-2">
+                <label className="text-sm font-medium">Name</label>
+                <input
+                  {...register("name")}
+                  placeholder="Your name"
+                  className="w-full rounded-md border border-neutral-200/60 dark:border-neutral-800/60 px-3 py-2 backdrop-blur bg-white/70 dark:bg-black/30"
+                />
+              </div>
               <div className="grid gap-2">
                 <label className="text-sm font-medium">Fitness Goal</label>
                 <select
@@ -177,55 +250,18 @@ export default function ProfilePage() {
                 </div>
               </div>
 
-              <div className="flex items-center gap-3">
+              <div className="flex flex-wrap items-center gap-3">
                 <button type="submit" className="px-4 py-2 rounded-md bg-teal-600 text-white hover:bg-teal-700">Save changes</button>
+                <button type="button" onClick={()=>{
+                  // Revert fields to initial values and return to card view
+                  setValue("name", initial?.name ?? "");
+                  setValue("fitnessGoal", initial?.fitnessGoal ?? "");
+                  setValue("allergies", initial?.allergies ?? []);
+                  setCardMode(true);
+                }} className="px-4 py-2 rounded-md border">Discard</button>
                 <span className="text-xs text-gray-500">We’ll tailor analyses to your preferences.</span>
               </div>
             </form>
-            <div className="mt-6">
-              <button onClick={async()=>{
-                try{
-                  const items = getGuestAnalyses();
-                  if(!items.length){ toast.info('No guest analyses found'); return; }
-                  const m = gql`mutation Migrate($items: [GuestAnalysisInput!]!){ migrateGuestAnalyses(items: $items){ success message } }`;
-                  const payload = items.map(it=>({ ingredients: it.ingredients, allergens: it.allergens, possibleAllergens: it.possibleAllergens||[], nutrition: JSON.stringify(it.nutrition||{}), health_analysis: it.health_analysis||'', grade: it.grade||null }));
-                  const res = await client.request<{ migrateGuestAnalyses: { success: boolean; message?: string } }>(m, { items: payload });
-                  toast.success(res.migrateGuestAnalyses.message || 'Migrated');
-                  clearGuestAnalyses();
-                }catch(err:any){
-                  toast.error(err?.message || 'Migration failed');
-                }
-              }} className="px-4 py-2 rounded-md border">Migrate guest analyses to account</button>
-            </div>
-            <div className="mt-8 border-t pt-6">
-              <div className="flex items-center justify-between mb-2">
-                <div>
-                  <h2 className="font-semibold">Upgrade to Pro</h2>
-                  <p className="text-xs text-neutral-600 dark:text-neutral-300">Unlimited analyses. One-time purchase.</p>
-                </div>
-                {quota && (
-                  <span className="text-xs rounded-md border px-2 py-1">Current plan: {quota.role}{quota.unlimited ? ' (unlimited)' : ''}</span>
-                )}
-              </div>
-              <div className="flex flex-col sm:flex-row gap-2">
-                <input value={coupon} onChange={(e)=>setCoupon(e.target.value)} placeholder="Coupon code (optional)" className="flex-1 rounded-md border border-neutral-200/60 dark:border-neutral-800/60 px-3 py-2 backdrop-blur bg-white/70 dark:bg-black/30" />
-                <button disabled={upgrading} onClick={async ()=>{
-                  try{
-                    setUpgrading(true);
-                    const m = gql`mutation Upgrade($coupon: String){ upgradeToPro(coupon: $coupon){ success message checkoutUrl } }`;
-                    const res = await client.request<{ upgradeToPro: { success: boolean; message?: string; checkoutUrl?: string|null } }>(m, { coupon: coupon || null });
-                    if(!res.upgradeToPro.success || !res.upgradeToPro.checkoutUrl){
-                      throw new Error(res.upgradeToPro.message || 'Failed to start checkout');
-                    }
-                    window.location.href = res.upgradeToPro.checkoutUrl as string;
-                  }catch(err:any){
-                    toast.error(err?.message || 'Failed to start checkout');
-                  }finally{
-                    setUpgrading(false);
-                  }
-                }} className="px-4 py-2 rounded-md bg-teal-600 text-white hover:bg-teal-700 disabled:opacity-50">{upgrading? 'Redirecting...' : 'Upgrade'}</button>
-              </div>
-            </div>
           </div>
         </div>
       </div>

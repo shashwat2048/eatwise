@@ -3,29 +3,14 @@ import db from "@/services/prisma";
 
 type Auth = { userId?: string } | undefined;
 
-export type Role = "GUEST" | "free" | "pro";
+export type Role = "free" | "pro";
 
 export async function enforceAnalyzeQuota(req: Request, auth: Auth): Promise<{ role: Role; remaining: number | null }>{
   const headers = req.headers || new Headers();
-  const isGuest = headers.get("x-guest") === "1";
-  const guestSession = headers.get("x-guest-session");
-
-  // Guest: rely on client-provided usage; do not store on server
-  if (!auth?.userId && isGuest && guestSession) {
-    const usedRaw = headers.get("x-guest-used");
-    const used = Math.max(0, Number(usedRaw || 0) || 0);
-    const max = 5;
-    const remaining = Math.max(0, max - used);
-    if (remaining <= 0) {
-      throw new GraphQLError("Guest limit reached: 5 analyses. Please sign in to continue.");
-    }
-    return { role: "GUEST", remaining };
-  }
 
   // Logged-in users: check DB for role and usage
   const clerkId = auth?.userId;
   if (!clerkId) {
-    // Anonymous without guest headers is not permitted
     throw new GraphQLError("Unauthorized");
   }
 

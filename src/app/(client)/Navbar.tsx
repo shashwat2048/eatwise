@@ -3,15 +3,14 @@ import Link from "next/link";
 import Image from "next/image";
 import { SignedIn, SignedOut, UserButton } from "@clerk/nextjs";
 import { ModeToggle } from "@/components/ui/theme-toggle-btn";
-import { Settings2 } from "lucide-react";
+import { Settings2, Crown } from "lucide-react";
 import { useEffect, useState } from "react";
-import { ensureGuestSession } from "@/lib/guest";
 import { useRouter } from "next/navigation";
 
 export default function Navbar() {
   const [open, setOpen] = useState(false);
   const router = useRouter();
-  const [role, setRole] = useState<'guest'|'free'|'pro'>('guest');
+  const [role, setRole] = useState<'free'|'pro'>('free');
   useEffect(() => {
     let mounted = true;
     (async () => {
@@ -25,10 +24,7 @@ export default function Navbar() {
     })();
     return () => { mounted = false };
   }, []);
-  function onGuest() {
-    ensureGuestSession();
-    router.push('/analyze');
-  }
+  
   return (
     <header className="sticky top-0 z-50 overflow-visible backdrop-blur-xl supports-[backdrop-filter]:bg-white/40 dark:supports-[backdrop-filter]:bg-black/30 bg-white/50 dark:bg-black/20 border-b border-white/20">
       <div className="mx-auto max-w-6xl px-4 h-16 flex items-center justify-between">
@@ -74,12 +70,15 @@ export default function Navbar() {
         </Link>
         <SignedOut>
           <div className="flex items-center gap-3">
-            <button onClick={onGuest} className="text-sm rounded-md border px-2.5 py-1.5 hover:bg-accent transition">Guest</button>
             <Link href="/sign-in" className="text-sm hover:text-primary transition transform duration-200">Sign In</Link>
           </div>
         </SignedOut>
         <SignedIn>
-          {role !== 'pro' && (
+          {role === 'pro' ? (
+            <span title="Pro" className="hidden sm:grid h-9 w-9 place-items-center rounded-md">
+              <Crown className="h-4 w-4 text-amber-500" />
+            </span>
+          ) : (
             <Link href="/eatwise-ai-PRO" className="hidden sm:inline-block text-sm rounded-md border px-2.5 py-1.5 hover:bg-accent transition">Upgrade</Link>
           )}
           <UserButton />

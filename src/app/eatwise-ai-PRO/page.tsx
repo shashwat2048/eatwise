@@ -3,7 +3,7 @@ import { useMemo, useState, useEffect, useRef } from "react";
 import gql from "graphql-tag";
 import { GraphQLClient } from "graphql-request";
 import { toast } from "sonner";
-import { useAuth } from "@clerk/nextjs";
+import { useAuth, useUser } from "@clerk/nextjs";
 import Image from "next/image";
 import { Check, Crown, Sparkles } from "lucide-react";
 import { AnimatedShinyText } from "@/components/ui/animated-shiny-text";
@@ -11,7 +11,8 @@ import { AnimatedShinyText } from "@/components/ui/animated-shiny-text";
 export default function ProUpgradePage() {
   const client = useMemo(() => new GraphQLClient("/api/graphql", { credentials: "include" }), []);
   const [role, setRole] = useState<'guest'|'free'|'pro'>('guest');
-  const { isSignedIn } = useAuth();
+  const { isSignedIn, userId } = useAuth();
+  const { user } = useUser();
   const buyBtnRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -44,10 +45,13 @@ export default function ProUpgradePage() {
       const el = document.createElement('stripe-buy-button');
       el.setAttribute('buy-button-id', 'buy_btn_1SAcRwAai5Y3wAsu2xbzCwXH');
       el.setAttribute('publishable-key', 'pk_test_51SAV9sAai5Y3wAsuHl8Kna99o1h4nQTtXDduFqX22UKuN9RPhAEOJd6yxYfyMZRn6SOGgGyZEmKFuRydR84wHfLm003r8XOgM0');
+      if (userId) el.setAttribute('client-reference-id', userId);
+      const email = user?.primaryEmailAddress?.emailAddress || user?.emailAddresses?.[0]?.emailAddress;
+      if (email) el.setAttribute('customer-email', email);
       root.innerHTML = '';
       root.appendChild(el);
     } catch {}
-  }, [isSignedIn, role]);
+  }, [isSignedIn, role, userId, user]);
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-10">

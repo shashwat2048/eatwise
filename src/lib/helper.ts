@@ -19,19 +19,14 @@ query Me {
 `
 export async function getUserFromCookies(){
     try{
-        const { userId } = await auth();
+        const a: any = await auth();
+        const userId = a?.userId;
         if(!userId){
+            // Not signed in; don't call GraphQL (would redirect HTML)
             return null;
         }
-        type GetMeResponse = { me: User | null };
-        const hdrs = await headers();
-        const host = hdrs.get("host") || "localhost:3000";
-        const proto = hdrs.get("x-forwarded-proto") || "http";
-        const endpoint = `${proto}://${host}/api/graphql`;
-        const cookie = hdrs.get("cookie") || "";
-        const client = new GraphQLClient(endpoint, { headers: { cookie } });
-        const result = await client.request<GetMeResponse>(GET_ME)
-        return result.me ?? null;
+        // Avoid SSR call to /api/graphql to prevent redirect HTML; just return a minimal user
+        return { id: userId } as unknown as User;
     }catch(err){
         console.error(err);
         return null;

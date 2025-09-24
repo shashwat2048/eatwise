@@ -7,6 +7,8 @@ import { ThemeProvider } from "next-themes";
 import { Toaster } from "sonner";
 import Navbar from "./(client)/Navbar";
 import Script from "next/script";
+import ProStatusWatcher from "@/components/ui/pro-status-watcher";
+import { UserProvider } from "@/components/ui/user-context";
 import RouteProgress from "@/components/ui/route-progress";
 
 const geistSans = Geist({
@@ -68,9 +70,12 @@ export default function RootLayout({
         <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
           <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
             <Script async src="https://js.stripe.com/v3/buy-button.js" />
-            <Navbar />
-            <RouteProgress />
-            <main>{children}</main>
+            <UserProvider>
+              <Navbar />
+              <RouteProgress />
+              <ProStatusWatcher />
+              <main>{children}</main>
+            </UserProvider>
             <Toaster richColors position="top-right" />
           </ThemeProvider>
         </body>

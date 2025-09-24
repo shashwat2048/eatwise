@@ -25,7 +25,7 @@ const typeDefs = gql`
   type Mutation {
     updateUser(id: String!, name: String, avatar: String, fitnessGoal: String, allergies: [String]): Response
     createOrUpdateProfile(fitnessGoal: String, allergies: [String]): Response
-    updateUserProfile(allergies: [String], fitnessGoal: String): Response
+    updateUserProfile(allergies: [String], fitnessGoal: String, name: String): Response
     analyzeLabel(imageBase64: String!): AnalyzeResult
     upgradeToPro(coupon: String): UpgradeResponse
     migrateGuestAnalyses(items: [GuestAnalysisInput!]!): Response
@@ -171,6 +171,7 @@ const resolvers = {
           success_url: `${origin}/profile?upgrade=success`,
           cancel_url: `${origin}/profile?upgrade=cancelled`,
           metadata: { clerkId: user.clerkId, userId: user.id },
+          customer_email: user.email || undefined,
         });
 
         if (!session?.url) {

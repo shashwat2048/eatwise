@@ -20,11 +20,35 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    if (event.type === 'checkout.session.completed') {
-      const session = event.data.object as any;
-      const clerkId = session?.metadata?.clerkId as string | undefined;
-      if (clerkId) {
-        await db.user.updateMany({ where: { clerkId }, data: { role: 'pro' } });
+    switch (event.type) {
+      case 'checkout.session.completed':
+      case 'checkout.session.async_payment_succeeded': {
+        const session = event.data.object as any;
+        // Defensive: retrieve full session to ensure payment status
+        let full: any = session;
+        try {
+          full = await stripe.checkout.sessions.retrieve(session.id, { expand: ['line_items', 'payment_intent', 'customer'] });
+        } catch {}
+
+        const paid = (full?.payment_status === 'paid') || (full?.status === 'complete');
+        const clerkId = full?.metadata?.clerkId as string | undefined;
+        const email = (full?.customer_details?.email as string | undefined) || undefined;
+        const clientRef = full?.client_reference_id as string | undefined;
+
+        if (!paid) break;
+
+        if (clerkId) {
+          await db.user.updateMany({ where: { clerkId }, data: { role: 'pro' } });
+        } else if (clientRef) {
+          await db.user.updateMany({ where: { clerkId: clientRef }, data: { role: 'pro' } });
+        } else if (email) {
+          // Fallback: match by email if clerkId missing
+          await db.user.updateMany({ where: { email }, data: { role: 'pro' } });
+        }
+        break;
+      }
+      default: {
+        // ignore other events
       }
     }
   } catch (err) {

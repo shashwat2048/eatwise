@@ -11,10 +11,12 @@ export async function POST(req: Request) {
     const body = await req.json();
     const allergies: string[] | undefined = body?.allergies;
     const fitnessGoal: string | null | undefined = body?.fitnessGoal;
+    const name: string | null | undefined = body?.name;
 
     const data: any = {};
     if (typeof allergies !== "undefined") data.allergies = Array.isArray(allergies) ? allergies : [];
     if (typeof fitnessGoal !== "undefined") data.fitnessGoal = fitnessGoal || null;
+    if (typeof name !== "undefined" && name !== null) data.name = String(name).trim().slice(0, 80);
 
     const existing = await db.user.findUnique({ where: { clerkId: userId } });
     if (!existing) {
@@ -22,7 +24,7 @@ export async function POST(req: Request) {
         data: {
           clerkId: userId,
           email: `${userId}@example.com`,
-          name: "User",
+          name: data.name || "User",
           ...data,
         },
       });

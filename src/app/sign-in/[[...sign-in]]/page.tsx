@@ -1,33 +1,17 @@
 "use client";
-import { SignIn } from '@clerk/nextjs'
+import { SignIn, useAuth } from '@clerk/nextjs'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
-import { ensureGuestSession, MAX_FREE_ANALYSES, getRemainingAnalyses, getGuestAnalyses, clearGuestAnalyses } from '@/lib/guest'
+ 
+import { useEffect, useState } from 'react'
 import { GraphQLClient } from 'graphql-request'
 
 export default function Page() {
   const router = useRouter();
-  function continueAsGuest() {
-    ensureGuestSession();
-    router.push('/analyze');
-  }
+  const { isSignedIn } = useAuth();
+  
   async function onSignedInMigrate() {
     try {
-      const items = getGuestAnalyses();
-      if (!items.length) return router.push('/analyze');
-      const payload = items.map(it => ({
-        ingredients: it.ingredients,
-        allergens: it.allergens,
-        possibleAllergens: it.possibleAllergens || [],
-        nutrition: JSON.stringify(it.nutrition || {}),
-        health_analysis: it.health_analysis || '',
-        grade: it.grade || null,
-        imageUrl: undefined,
-      }));
-      const client = new GraphQLClient('/api/graphql', { credentials: 'include' });
-      const mutation = `mutation Migrate($items: [GuestAnalysisInput!]!){ migrateGuestAnalyses(items: $items){ success message } }`;
-      const res = await client.request<{ migrateGuestAnalyses: { success: boolean; message?: string } }>(mutation, { items: payload });
-      clearGuestAnalyses();
       router.push('/analyze');
     } catch {
       router.push('/analyze');
@@ -65,17 +49,7 @@ export default function Page() {
         {/* Form + value props (mobile) */}
         <div className="mx-auto w-full max-w-md">
           <SignIn appearance={{ elements: { card: 'rounded-2xl border backdrop-blur bg-white/60 dark:bg-black/30 p-6 shadow-sm' } }} afterSignInUrl="/profile" signUpFallbackRedirectUrl="/profile" />
-          <div className="mt-3">
-            <button onClick={onSignedInMigrate} className="w-full px-4 py-2 rounded-md border hover:bg-accent transition">Migrate guest analyses after sign-in</button>
-          </div>
-          <div className="my-4 flex items-center gap-3">
-            <div className="h-px flex-1 bg-gray-200 dark:bg-gray-800" />
-            <span className="text-xs text-gray-500">or</span>
-            <div className="h-px flex-1 bg-gray-200 dark:bg-gray-800" />
-          </div>
-          <button onClick={continueAsGuest} className="w-full px-4 py-2 rounded-md border hover:bg-accent transition">
-            Continue as Guest (free {getRemainingAnalyses()} of {MAX_FREE_ANALYSES})
-          </button>
+          
           <div className="mt-6 grid gap-2 text-xs text-gray-600 dark:text-gray-300 md:hidden">
             <div>✅ AI-Powered Nutrition Analysis</div>
             <div>✅ Personalized Fitness Tracking</div>

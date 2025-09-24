@@ -51,7 +51,7 @@ export default function ProUpgradePage() {
     <div className="mx-auto max-w-3xl px-4 py-10">
       {/* Promo ribbon */}
       <div className="flex items-center justify-center rounded-xl border mb-4 px-4 py-2 bg-teal-50 dark:bg-teal-900/20 text-[11px] sm:text-xs text-teal-800 dark:text-teal-200">
-        Use coupon code <span className="font-semibold">EATWISE100</span> at checkout to get <span className="font-semibold">100% off</span>.
+        Use coupon code <span className="font-semibold">&nbsp;EATWISE100&nbsp;</span> at checkout to get <span className="font-semibold">100% off</span>.
       </div>
 
       {/* Glowing bordered card */}

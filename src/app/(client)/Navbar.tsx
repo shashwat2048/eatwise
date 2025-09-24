@@ -6,6 +6,7 @@ import { ModeToggle } from "@/components/ui/theme-toggle-btn";
 import { Settings2, Crown } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { RainbowButton } from "@/components/ui/rainbow-button";
 
 export default function Navbar() {
   const [open, setOpen] = useState(false);
@@ -59,15 +60,17 @@ export default function Navbar() {
             </div>
           )}
         </div>
-        {/* Desktop preferences icon */}
-        <Link
-          href="/profile"
-          aria-label="Update Profile"
-          className="hidden sm:grid h-9 w-9 place-items-center rounded-md border hover:bg-accent"
-          title="Profile"
-        >
-          <Settings2 className="h-4 w-4" />
-        </Link>
+        {/* Desktop profile text link (only when signed in) */}
+        <SignedIn>
+          <Link
+            href="/profile"
+            aria-label="Profile"
+            className="hidden sm:inline-block rounded-md border px-3 py-1.5 text-sm hover:bg-accent"
+            title="Profile"
+          >
+            Profile
+          </Link>
+        </SignedIn>
         <SignedOut>
           <div className="flex items-center gap-3">
             <Link href="/sign-in" className="text-sm hover:text-primary transition transform duration-200">Sign In</Link>
@@ -79,7 +82,9 @@ export default function Navbar() {
               <Crown className="h-4 w-4 text-amber-500" />
             </span>
           ) : (
-            <Link href="/eatwise-ai-PRO" className="hidden sm:inline-block text-sm rounded-md border px-2.5 py-1.5 hover:bg-accent transition">Upgrade</Link>
+            <Link href="/eatwise-ai-PRO" className="hidden sm:inline-block">
+              <RainbowButton variant="outline">Unlimited Access</RainbowButton>
+            </Link>
           )}
           <UserButton />
         </SignedIn>

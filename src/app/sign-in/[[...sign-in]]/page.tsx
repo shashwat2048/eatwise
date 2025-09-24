@@ -48,7 +48,7 @@ export default function Page() {
 
         {/* Form + value props (mobile) */}
         <div className="mx-auto w-full max-w-md">
-          <SignIn appearance={{ elements: { card: 'rounded-2xl border backdrop-blur bg-white/60 dark:bg-black/30 p-6 shadow-sm' } }} afterSignInUrl="/profile" signUpFallbackRedirectUrl="/profile" />
+          <SignIn appearance={{ elements: { card: 'rounded-2xl border backdrop-blur bg-white/60 dark:bg-black/30 p-6 shadow-sm' } }} afterSignInUrl="/" signUpFallbackRedirectUrl="/" />
           
           <div className="mt-6 grid gap-2 text-xs text-gray-600 dark:text-gray-300 md:hidden">
             <div>✅ AI-Powered Nutrition Analysis</div>

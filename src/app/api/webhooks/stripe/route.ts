@@ -3,23 +3,36 @@ import db from "@/services/prisma";
 import { stripe } from "@/services/stripe";
 
 export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
+export async function GET() {
+  return new Response(JSON.stringify({ ok: true, message: 'Stripe webhook reachable' }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+}
 
 export async function POST(req: NextRequest) {
   const sig = req.headers.get("stripe-signature");
   const whSecret = process.env.STRIPE_WEBHOOK_SECRET as string | undefined;
+  const skipVerify = process.env.STRIPE_WEBHOOK_UNSAFE_SKIP_VERIFY === '1';
   if (!whSecret) return new Response("Missing STRIPE_WEBHOOK_SECRET", { status: 500 });
-  if (!sig) return new Response("Missing Stripe signature", { status: 400 });
+  if (!sig && !skipVerify) return new Response("Missing Stripe signature", { status: 400 });
 
   let event: any;
   try {
-    const buf = await req.arrayBuffer();
-    const text = Buffer.from(buf).toString("utf8");
-    event = stripe.webhooks.constructEvent(text, sig, whSecret);
+    // IMPORTANT: use the raw request body for signature verification
+    if (skipVerify) {
+      const json = await req.json().catch(()=>null);
+      if (!json) throw new Error('Invalid JSON body');
+      event = json;
+    } else {
+      const body = await req.text();
+      event = stripe.webhooks.constructEvent(body, sig as string, whSecret);
+    }
   } catch (err: any) {
     return new Response(`Webhook Error: ${err?.message || 'invalid signature'}`, { status: 400 });
   }
 
   try {
+    console.log("[stripe] event", event?.id, event?.type);
     switch (event.type) {
       case 'checkout.session.completed':
       case 'checkout.session.async_payment_succeeded': {
@@ -37,14 +50,18 @@ export async function POST(req: NextRequest) {
 
         if (!paid) break;
 
+        let updated = 0;
         if (clerkId) {
-          await db.user.updateMany({ where: { clerkId }, data: { role: 'pro' } });
+          const res = await db.user.updateMany({ where: { clerkId }, data: { role: 'pro' } });
+          updated = res.count;
         } else if (clientRef) {
-          await db.user.updateMany({ where: { clerkId: clientRef }, data: { role: 'pro' } });
+          const res = await db.user.updateMany({ where: { clerkId: clientRef }, data: { role: 'pro' } });
+          updated = res.count;
         } else if (email) {
-          // Fallback: match by email if clerkId missing
-          await db.user.updateMany({ where: { email }, data: { role: 'pro' } });
+          const res = await db.user.updateMany({ where: { email }, data: { role: 'pro' } });
+          updated = res.count;
         }
+        console.log('[stripe] upgraded users:', updated, { clerkId, clientRef, email });
         break;
       }
       default: {
@@ -52,7 +69,7 @@ export async function POST(req: NextRequest) {
       }
     }
   } catch (err) {
-    // swallow errors to avoid retries storm; Stripe will retry on failure anyway
+    console.error('[stripe] handler error', err);
   }
   return new Response(JSON.stringify({ received: true }), { status: 200, headers: { "Content-Type": "application/json" } });
 }

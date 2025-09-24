@@ -1,5 +1,5 @@
 "use client";
-import { useMemo, useState, useEffect, useRef } from "react";
+import { useMemo, useState, useEffect } from "react";
 import gql from "graphql-tag";
 import { GraphQLClient } from "graphql-request";
 import { toast } from "sonner";
@@ -13,7 +13,6 @@ export default function ProUpgradePage() {
   const [role, setRole] = useState<'guest'|'free'|'pro'>('guest');
   const { isSignedIn, userId } = useAuth();
   const { user } = useUser();
-  const buyBtnRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -35,23 +34,18 @@ export default function ProUpgradePage() {
     } catch {}
   }, []);
 
-  // Inject Stripe Buy Button custom element after script loads
-  useEffect(() => {
-    if (!buyBtnRef.current) return;
-    if (!isSignedIn || role === 'pro') return;
-    const root = buyBtnRef.current;
-    if (root.querySelector('stripe-buy-button')) return;
+  function goToPaymentLink() {
+    const base = 'https://buy.stripe.com/test_8x28wOfo6bUccwse4h6Na00';
     try {
-      const el = document.createElement('stripe-buy-button');
-      el.setAttribute('buy-button-id', 'buy_btn_1SAcRwAai5Y3wAsu2xbzCwXH');
-      el.setAttribute('publishable-key', 'pk_test_51SAV9sAai5Y3wAsuHl8Kna99o1h4nQTtXDduFqX22UKuN9RPhAEOJd6yxYfyMZRn6SOGgGyZEmKFuRydR84wHfLm003r8XOgM0');
-      if (userId) el.setAttribute('client-reference-id', userId);
-      const email = user?.primaryEmailAddress?.emailAddress || user?.emailAddresses?.[0]?.emailAddress;
-      if (email) el.setAttribute('customer-email', email);
-      root.innerHTML = '';
-      root.appendChild(el);
-    } catch {}
-  }, [isSignedIn, role, userId, user]);
+      const url = new URL(base);
+      if (userId) url.searchParams.set('client_reference_id', userId);
+      const email = user?.primaryEmailAddress?.emailAddress || user?.emailAddresses?.[0]?.emailAddress || '';
+      if (email) url.searchParams.set('prefilled_email', email);
+      window.location.href = url.toString();
+    } catch {
+      window.location.href = base;
+    }
+  }
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-10">
@@ -92,7 +86,11 @@ export default function ProUpgradePage() {
             <div className="text-xs text-neutral-600 dark:text-neutral-300">
               {role==='pro' ? 'You are already on Pro.' : isSignedIn ? 'Free plan detected.' : 'Guest mode detected — sign in to upgrade.'}
             </div>
-            <div className="inline-flex items-center" ref={buyBtnRef} />
+            {role !== 'pro' && (
+              <button onClick={goToPaymentLink} disabled={!isSignedIn} className="inline-flex items-center px-4 py-2 rounded-md bg-teal-600 text-white hover:bg-teal-700 disabled:opacity-50">
+                Pay Now
+              </button>
+            )}
           </div>
           {!isSignedIn && (
             <div className="mt-2 text-[11px] text-red-600">Please sign in to upgrade.</div>

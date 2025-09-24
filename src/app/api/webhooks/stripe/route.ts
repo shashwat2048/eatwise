@@ -5,8 +5,14 @@ import { stripe } from "@/services/stripe";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-export async function GET() {
-  return new Response(JSON.stringify({ ok: true, message: 'Stripe webhook reachable' }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+export async function GET(req: NextRequest) {
+  const url = new URL(req.url);
+  const debug = url.searchParams.get('debug') === '1';
+  const hasSecret = Boolean(process.env.STRIPE_WEBHOOK_SECRET);
+  const payload = debug
+    ? { ok: true, message: 'Stripe webhook reachable', hasSecret, runtime: 'nodejs', region: process.env.VERCEL_REGION || null }
+    : { ok: true, message: 'Stripe webhook reachable' };
+  return new Response(JSON.stringify(payload), { status: 200, headers: { 'Content-Type': 'application/json' } });
 }
 
 export async function POST(req: NextRequest) {

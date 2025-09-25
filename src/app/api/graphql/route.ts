@@ -7,6 +7,7 @@ import { updateUserProfile } from "./resolvers/user";
 import { analyzeLabel } from "./resolvers/user";
 import { myReports, getReports } from "./resolvers/user";
 import { getAuth } from "@clerk/nextjs/server";
+import { deleteReport } from "./resolvers/feature";
 import { signToken } from "@/services/jwt";
 import { enforceAnalyzeQuota } from "./rbac";
 import db from "@/services/prisma";
@@ -27,6 +28,7 @@ const typeDefs = gql`
     createOrUpdateProfile(fitnessGoal: String, allergies: [String]): Response
     updateUserProfile(allergies: [String], fitnessGoal: String, name: String): Response
     analyzeLabel(imageBase64: String!): AnalyzeResult
+    deleteReport(id: String!): Response
     upgradeToPro(coupon: String): UpgradeResponse
     migrateGuestAnalyses(items: [GuestAnalysisInput!]!): Response
   }
@@ -121,6 +123,7 @@ const resolvers = {
       await enforceAnalyzeQuota(context.req, context.auth);
       return analyzeLabel(_, args, context);
     },
+    deleteReport: deleteReport,
     upgradeToPro: async (_: any, args: { coupon?: string | null }, context: any) => {
       try {
         const { userId } = context?.auth || {};

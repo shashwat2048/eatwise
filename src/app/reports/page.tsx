@@ -6,6 +6,7 @@ import { ChevronDown, Share2 } from "lucide-react";
 import { LoaderFive } from "@/components/ui/loader";
 import AccessGateBanner from "@/components/ui/access-gate-banner";
 import { toast } from "sonner";
+import { Trash2 } from "lucide-react";
 
 type Report = {
   id: string;
@@ -24,6 +25,7 @@ export default function ReportsPage() {
   const [reports, setReports] = useState<Report[]>([]);
   const [loading, setLoading] = useState(true);
   const [userAllergies, setUserAllergies] = useState<string[]>([]);
+  const [confirmId, setConfirmId] = useState<string | null>(null);
 
   async function shareReport(r: Report) {
     try {
@@ -51,6 +53,24 @@ export default function ReportsPage() {
       toast.success('Report summary copied to clipboard');
     } catch {
       toast.error('Unable to share this report');
+    }
+  }
+
+  async function deleteReportById(id: string) {
+    try {
+      const mutation = `mutation($id: String!){ deleteReport(id: $id){ success message } }`;
+      const res = await fetch('/api/graphql', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include',
+        body: JSON.stringify({ query: mutation, variables: { id } })
+      });
+      const json = await res.json();
+      const ok = json?.data?.deleteReport?.success;
+      if (!ok) throw new Error(json?.data?.deleteReport?.message || 'Failed');
+      setReports(reports => reports.filter(r => r.id !== id));
+      setConfirmId(null);
+      toast.success('Report deleted');
+    } catch (e: any) {
+      toast.error(e?.message || 'Failed to delete');
     }
   }
 
@@ -190,11 +210,17 @@ export default function ReportsPage() {
                     <div className="px-3 pb-3 text-xs whitespace-pre-wrap">{health}</div>
                   </details>
                 )}
-                <div className="flex items-center justify-between">
-                  <button onClick={() => shareReport(r)} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border text-xs hover:bg-accent">
-                    <Share2 className="h-3.5 w-3.5" />
-                    Share
-                  </button>
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <button onClick={() => shareReport(r)} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border text-xs hover:bg-accent">
+                      <Share2 className="h-3.5 w-3.5" />
+                      Share
+                    </button>
+                    <button onClick={() => setConfirmId(r.id)} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-red-300 text-xs text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20">
+                      <Trash2 className="h-3.5 w-3.5" />
+                      Delete
+                    </button>
+                  </div>
                   <div className="text-[10px] sm:text-xs text-gray-500">{new Date(r.createdAt).toLocaleString()}</div>
                 </div>
                 </div>
@@ -202,6 +228,21 @@ export default function ReportsPage() {
             );
           })}
           {reports.length === 0 && <div className="text-sm text-gray-500">No reports yet.</div>}
+        </div>
+      )}
+      {confirmId && (
+        <div className="fixed inset-0 z-[1006] flex items-end sm:items-center justify-center">
+          <div className="absolute inset-0 bg-black/50" onClick={()=>setConfirmId(null)} />
+          <div className="relative w-full sm:w-[420px] rounded-t-2xl sm:rounded-2xl border backdrop-blur bg-white/90 dark:bg-black/70 shadow-xl p-4 sm:p-6">
+            <div className="text-center space-y-2">
+              <h3 className="text-base sm:text-lg font-semibold">Delete this report?</h3>
+              <p className="text-xs text-neutral-600 dark:text-neutral-300">This action cannot be undone.</p>
+            </div>
+            <div className="mt-4 grid grid-cols-2 gap-2">
+              <button onClick={()=>setConfirmId(null)} className="h-10 rounded-md border">No</button>
+              <button onClick={()=>deleteReportById(confirmId)} className="h-10 rounded-md bg-red-600 text-white hover:bg-red-700">Yes, delete</button>
+            </div>
+          </div>
         </div>
       )}
     </div>

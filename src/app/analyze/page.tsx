@@ -34,6 +34,8 @@ export default function AnalyzePage() {
   const [quota, setQuota] = useState<{ role: string; used: number; max: number; remaining: number; unlimited: boolean } | null>(null);
   const [blurScore, setBlurScore] = useState<number | null>(null);
   const [showConfirm, setShowConfirm] = useState(false);
+  const [cameraFacing, setCameraFacing] = useState<'environment' | 'user'>('environment');
+  const [torchOn, setTorchOn] = useState(false);
   const router = useRouter();
 
   function gradeClass(g?: string | null) {
@@ -75,16 +77,21 @@ export default function AnalyzePage() {
     fetchQuota();
   }, []);
 
-  async function startCamera() {
+  async function startCamera(nextFacing?: 'environment' | 'user') {
     setError(null);
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+      const facing = nextFacing || cameraFacing;
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: facing } });
       streamRef.current = stream;
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
         await videoRef.current.play();
       }
       setCameraOn(true);
+      setCameraFacing(facing);
+      if (torchOn) {
+        try { await applyTorch(true); } catch {}
+      }
     } catch (e) {
       setError("Camera access denied or unavailable");
     }
@@ -120,6 +127,36 @@ export default function AnalyzePage() {
       videoRef.current.srcObject = null;
     }
     setCameraOn(false);
+  }
+
+  async function applyTorch(desired: boolean): Promise<boolean> {
+    try {
+      const track = streamRef.current?.getVideoTracks?.()[0];
+      const caps: any = track && (track as any).getCapabilities ? (track as any).getCapabilities() : null;
+      if (track && caps && 'torch' in caps) {
+        await (track as any).applyConstraints({ advanced: [{ torch: desired }] });
+        return true;
+      }
+    } catch {}
+    return false;
+  }
+
+  async function toggleTorch() {
+    if (!cameraOn) { toast("Start camera first"); return; }
+    const want = !torchOn;
+    const ok = await applyTorch(want);
+    if (!ok) {
+      toast("Flash not supported on this device/browser");
+      setTorchOn(false);
+      return;
+    }
+    setTorchOn(want);
+  }
+
+  async function switchCamera() {
+    const next = cameraFacing === 'environment' ? 'user' : 'environment';
+    stopCamera();
+    setTimeout(() => { startCamera(next); }, 50);
   }
 
   function onFileChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -170,6 +207,7 @@ export default function AnalyzePage() {
 
   async function onSubmit() {
     if (!file) return;
+    setShowConfirm(false);
     setBusy(true);
     setError(null);
     try {
@@ -327,9 +365,11 @@ export default function AnalyzePage() {
               </div>
             </div>
             <div className="flex flex-wrap gap-2">
-              <button onClick={startCamera} className="w-full sm:w-auto justify-center px-3 py-2 rounded-md bg-teal-600 text-white hover:bg-teal-700 transition transform duration-300">Start Camera</button>
+              <button onClick={() => startCamera()} className="w-full sm:w-auto justify-center px-3 py-2 rounded-md bg-teal-600 text-white hover:bg-teal-700 transition transform duration-300">Start Camera</button>
               <button onClick={captureFrame} className="w-full sm:w-auto justify-center px-3 py-2 rounded-md border border-neutral-200/60 dark:border-neutral-800/60">Capture</button>
               <button onClick={stopCamera} className="w-full sm:w-auto justify-center px-3 py-2 rounded-md border border-neutral-200/60 dark:border-neutral-800/60">Stop</button>
+              <button onClick={switchCamera} className="w-full sm:w-auto justify-center px-3 py-2 rounded-md border border-neutral-200/60 dark:border-neutral-800/60">Switch Camera</button>
+              <button onClick={toggleTorch} className={`w-full sm:w-auto justify-center px-3 py-2 rounded-md border ${torchOn ? 'bg-amber-500 text-white border-amber-500' : 'border-neutral-200/60 dark:border-neutral-800/60'}`}>{torchOn ? 'Flash On' : 'Flash'}</button>
             </div>
             <canvas ref={canvasRef} className="hidden" />
           </div>

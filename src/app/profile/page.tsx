@@ -164,35 +164,30 @@ export default function ProfilePage() {
   );
 
   return (
-    <div className="px-4 py-10">
-      <div className="max-w-2xl mx-auto min-h-[70vh] grid place-items-center">
-        <div className="relative w-full rounded-2xl border backdrop-blur bg-white/60 dark:bg-black/30 p-8 shadow-sm overflow-hidden">
+    <div className="px-4 py-6 sm:py-10">
+      <div className="max-w-xl sm:max-w-2xl mx-auto min-h-[70vh] grid place-items-center">
+        <div className="relative w-full rounded-2xl border backdrop-blur bg-white/70 dark:bg-black/30 p-6 sm:p-8 shadow-md sm:shadow-lg overflow-hidden">
           <div className="absolute inset-0 [mask-image:radial-gradient(ellipse_at_center,white,transparent)]">
             <GridPattern />
           </div>
           <div className="relative z-10">
-            <div className="mb-6">
-              <h1 className="text-2xl font-semibold">Your Profile</h1>
+            <div className="mb-6 sm:mb-8">
+              <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight">Your Profile</h1>
               <p className="text-sm text-neutral-600 dark:text-neutral-300 mt-1">Manage your details and preferences.</p>
             </div>
 
             {/* Read-only card view */}
-            <div className={`grid gap-3 mb-4 ${cardMode ? '' : 'hidden'}`}>
-              <div className="relative rounded-2xl border p-5 bg-white/80 dark:bg-black/30 shadow-md hover:shadow-lg transition-shadow overflow-hidden">
+            <div className={`grid gap-4 sm:gap-5 mb-4 sm:mb-6 ${cardMode ? '' : 'hidden'}`}>
+              <div className="relative rounded-2xl border p-5 sm:p-6 bg-white/80 dark:bg-black/30 shadow-md hover:shadow-lg transition-shadow overflow-hidden">
                 <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-teal-500 via-emerald-500 to-lime-500" />
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-full bg-teal-600 text-white grid place-items-center font-semibold">
+                <div className="flex items-center justify-start gap-3 mb-4">
+                  <div className={`h-11 w-11 rounded-full bg-teal-600 text-white grid place-items-center font-semibold ${quota?.role === 'pro' ? 'ring-2 ring-amber-400 ring-offset-2 ring-offset-white dark:ring-offset-black' : ''}`}>
                       {(initial?.name || meName || 'U')?.slice(0,1)?.toUpperCase()}
-                    </div>
-                    <div className="text-sm">
-                      <div className="font-medium">{initial?.name || meName || '—'}</div>
-                      <div className="text-neutral-500">{meEmail || '—'}</div>
-                    </div>
                   </div>
-                  <span className={`${quota?.role==='pro' ? 'bg-gradient-to-r from-amber-400 to-yellow-500 text-black border-amber-300' : 'bg-teal-50 text-teal-700 border-teal-200 dark:bg-teal-900/30 dark:text-teal-200 dark:border-teal-800'} text-xs px-2.5 py-1 rounded-full border`}>
-                    {quota?.role || 'free'}{quota?.unlimited ? ' • unlimited' : ''}
-                  </span>
+                  <div className="text-sm">
+                    <div className="font-medium text-base">{initial?.name || meName || '—'}</div>
+                    <div className="text-neutral-500 truncate max-w-[200px] sm:max-w-none">{meEmail || '—'}</div>
+                  </div>
                 </div>
                 <div className="grid gap-1.5 text-sm">
                   <div><span className="font-medium">Fitness goal:</span> {initial?.fitnessGoal || '—'}</div>
@@ -200,7 +195,7 @@ export default function ProfilePage() {
                 </div>
               </div>
               <div>
-                <button type="button" onClick={()=>setCardMode(false)} className="px-4 py-2 rounded-md border hover:bg-neutral-100 dark:hover:bg-neutral-900 transition">Edit</button>
+                <button type="button" onClick={()=>setCardMode(false)} className="w-full sm:w-auto h-11 px-4 rounded-lg border hover:bg-neutral-100 dark:hover:bg-neutral-900 transition">Edit</button>
               </div>
             </div>
 
@@ -211,14 +206,14 @@ export default function ProfilePage() {
                 <input
                   {...register("name")}
                   placeholder="Your name"
-                  className="w-full rounded-md border border-neutral-200/60 dark:border-neutral-800/60 px-3 py-2 backdrop-blur bg-white/70 dark:bg-black/30"
+                  className="w-full h-11 rounded-lg border border-neutral-200/60 dark:border-neutral-800/60 px-3 backdrop-blur bg-white/70 dark:bg-black/30 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
                 />
               </div>
               <div className="grid gap-2">
                 <label className="text-sm font-medium">Fitness Goal</label>
                 <select
                   {...register("fitnessGoal")}
-                  className="w-full rounded-md border border-neutral-200/60 dark:border-neutral-800/60 px-3 py-2 backdrop-blur bg-white/70 dark:bg-black/30"
+                  className="w-full h-11 rounded-lg border border-neutral-200/60 dark:border-neutral-800/60 px-3 backdrop-blur bg-white/70 dark:bg-black/30 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
                 >
                   <option value="">Select</option>
                   <option value="weight_loss">Weight Loss</option>
@@ -230,7 +225,7 @@ export default function ProfilePage() {
 
               <div className="grid gap-3">
                 <label className="text-sm font-medium">Allergies</label>
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap gap-2.5">
                   {["peanuts","gluten","dairy","soy","eggs","shellfish"].map((opt) => {
                     const active = allergies?.includes(opt as any);
                     return (
@@ -241,7 +236,7 @@ export default function ProfilePage() {
                           const next = active ? allergies.filter(a => a !== opt) : [...(allergies||[]), opt];
                           setValue("allergies", next, { shouldDirty: true });
                         }}
-                        className={`px-3 py-1 rounded-full border border-neutral-200/60 dark:border-neutral-800/60 backdrop-blur transition ${active ? "bg-teal-600 text-white border-teal-600" : "bg-white/70 dark:bg-black/30 hover:bg-white/80 dark:hover:bg-black/40"}`}
+                        className={`px-3.5 py-1.5 rounded-full border text-sm border-neutral-200/60 dark:border-neutral-800/60 backdrop-blur transition ${active ? "bg-teal-600 text-white border-teal-600" : "bg-white/70 dark:bg-black/30 hover:bg-white/80 dark:hover:bg-black/40"}`}
                       >
                         {opt}
                       </button>
@@ -250,15 +245,19 @@ export default function ProfilePage() {
                 </div>
               </div>
 
-              <div className="flex flex-wrap items-center gap-3">
-                <button type="submit" className="px-4 py-2 rounded-md bg-teal-600 text-white hover:bg-teal-700">Save changes</button>
+              <div className="flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-3">
+                <button type="submit" className="w-full sm:w-auto h-11 px-5 rounded-lg bg-teal-600 text-white hover:bg-teal-700 shadow">
+                  Save changes
+                </button>
                 <button type="button" onClick={()=>{
                   // Revert fields to initial values and return to card view
                   setValue("name", initial?.name ?? "");
                   setValue("fitnessGoal", initial?.fitnessGoal ?? "");
                   setValue("allergies", initial?.allergies ?? []);
                   setCardMode(true);
-                }} className="px-4 py-2 rounded-md border">Discard</button>
+                }} className="w-full sm:w-auto h-11 px-5 rounded-lg border">
+                  Discard
+                </button>
                 <span className="text-xs text-gray-500">We’ll tailor analyses to your preferences.</span>
               </div>
             </form>

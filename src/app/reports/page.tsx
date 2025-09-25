@@ -2,9 +2,10 @@
 import { useEffect, useState } from "react";
 import gql from "graphql-tag";
 import { useAuth } from "@clerk/nextjs";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, Share2 } from "lucide-react";
 import { LoaderFive } from "@/components/ui/loader";
 import AccessGateBanner from "@/components/ui/access-gate-banner";
+import { toast } from "sonner";
 
 type Report = {
   id: string;
@@ -23,6 +24,35 @@ export default function ReportsPage() {
   const [reports, setReports] = useState<Report[]>([]);
   const [loading, setLoading] = useState(true);
   const [userAllergies, setUserAllergies] = useState<string[]>([]);
+
+  async function shareReport(r: Report) {
+    try {
+      let parsed: any = {};
+      try { parsed = r.content ? JSON.parse(r.content) : {}; } catch {}
+      const grade = parsed?.grade || null;
+      const possible = parsed?.possibleAllergens || [];
+      const name = parsed?.name || "Food Label";
+      const health = parsed?.health_analysis ? String(parsed.health_analysis) : "";
+      const healthSnippet = health ? (health.length > 500 ? health.slice(0, 500) + "…" : health) : "";
+      const summary = [
+        `${name}`,
+        grade ? `Grade: ${grade}` : undefined,
+        r.allergensFound?.length ? `Allergens: ${r.allergensFound.join(', ')}` : undefined,
+        possible?.length ? `Possible: ${possible.join(', ')}` : undefined,
+        healthSnippet ? `\nHealth analysis:\n${healthSnippet}` : undefined,
+        `Shared via EatWise`
+      ].filter(Boolean).join('\n');
+
+      if (navigator.share) {
+        await navigator.share({ title: 'EatWise Report', text: summary });
+        return;
+      }
+      await navigator.clipboard.writeText(summary);
+      toast.success('Report summary copied to clipboard');
+    } catch {
+      toast.error('Unable to share this report');
+    }
+  }
 
   function gradeClass(g?: string | null) {
     const v = (g || '').toString().trim().toUpperCase();
@@ -160,7 +190,13 @@ export default function ReportsPage() {
                     <div className="px-3 pb-3 text-xs whitespace-pre-wrap">{health}</div>
                   </details>
                 )}
-                <div className="text-[10px] sm:text-xs text-gray-500 text-right">{new Date(r.createdAt).toLocaleString()}</div>
+                <div className="flex items-center justify-between">
+                  <button onClick={() => shareReport(r)} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border text-xs hover:bg-accent">
+                    <Share2 className="h-3.5 w-3.5" />
+                    Share
+                  </button>
+                  <div className="text-[10px] sm:text-xs text-gray-500">{new Date(r.createdAt).toLocaleString()}</div>
+                </div>
                 </div>
               </details>
             );

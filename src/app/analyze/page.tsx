@@ -33,6 +33,7 @@ export default function AnalyzePage() {
   }>(null);
   const [quota, setQuota] = useState<{ role: string; used: number; max: number; remaining: number; unlimited: boolean } | null>(null);
   const [blurScore, setBlurScore] = useState<number | null>(null);
+  const [showConfirm, setShowConfirm] = useState(false);
   const router = useRouter();
 
   function gradeClass(g?: string | null) {
@@ -104,6 +105,7 @@ export default function AnalyzePage() {
       setFile(f);
       const url = URL.createObjectURL(blob);
       setPreview(url);
+      setShowConfirm(true);
       // compute simple blur score
       computeBlurScore(canvas).then(setBlurScore).catch(()=>setBlurScore(null));
     }, "image/jpeg", 0.9);
@@ -146,6 +148,7 @@ export default function AnalyzePage() {
       if (preview) URL.revokeObjectURL(preview);
     } catch {}
     setPreview(URL.createObjectURL(first));
+    setShowConfirm(true);
     // attempt blur score after load
     setTimeout(async () => {
       try {
@@ -214,6 +217,7 @@ export default function AnalyzePage() {
       };
       setResult(structured);
       toast.success(data.saved ? "Report saved" : "Analysis ready");
+      setShowConfirm(false);
       // haptic / visual small feedback on success
       try { if (navigator.vibrate) navigator.vibrate(20); } catch {}
       // Guests removed: storage handled by server for authenticated users only
@@ -276,7 +280,7 @@ export default function AnalyzePage() {
   }
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-8 space-y-6">
+    <div className="mx-auto max-w-6xl px-4 py-4 space-y-6">
       <StepHeader step={file ? (result ? 3 : 2) : 1} />
       <div className="space-y-2">
         <h1 className="text-3xl font-semibold">Analyze Food Label</h1>
@@ -403,6 +407,33 @@ export default function AnalyzePage() {
         </div>
       )}
       </>
+      )}
+      {showConfirm && preview && (
+        <div className="fixed inset-0 z-[1006] flex items-end sm:items-center justify-center">
+          <div className="absolute inset-0 bg-black/50" onClick={() => setShowConfirm(false)} />
+          <div className="relative w-full sm:w-[420px] rounded-t-2xl sm:rounded-2xl border backdrop-blur bg-white/90 dark:bg-black/70 shadow-xl p-4 sm:p-6">
+            <div className="text-center space-y-2">
+              <h3 className="text-base sm:text-lg font-semibold">Image captured successfully</h3>
+              <p className="text-xs text-neutral-600 dark:text-neutral-300">Send to analyze now or discard to retake.</p>
+            </div>
+            <div className="mt-4 space-y-2">
+              <button
+                disabled={busy}
+                onClick={onSubmit}
+                className="w-full h-11 rounded-lg bg-teal-600 text-white hover:bg-teal-700 disabled:opacity-50"
+              >
+                Send to Analyze
+              </button>
+              <button
+                disabled={busy}
+                onClick={() => { setShowConfirm(false); clearImage(); }}
+                className="w-full h-11 rounded-lg border"
+              >
+                Discard
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

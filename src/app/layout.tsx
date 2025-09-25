@@ -10,6 +10,7 @@ import Script from "next/script";
 import ProStatusWatcher from "@/components/ui/pro-status-watcher";
 import { UserProvider } from "@/components/ui/user-context";
 import RouteProgress from "@/components/ui/route-progress";
+import MobileBottomNav from "@/components/ui/mobile-bottom-nav";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -67,14 +68,18 @@ export default function RootLayout({
   return (
     <ClerkProvider afterSignInUrl="/" afterSignUpUrl="/">
       <html lang="en" suppressHydrationWarning>
-        <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+        <body className={`${geistSans.variable} ${geistMono.variable} antialiased bg-white dark:bg-black`}>
           <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+            <div className="fixed inset-0 -z-10 pointer-events-none">
+              <div className="absolute inset-0 bg-gradient-to-b from-teal-200/40 via-transparent to-transparent dark:from-teal-800/25 dark:via-transparent" />
+            </div>
             <Script async src="https://js.stripe.com/v3/buy-button.js" />
             <UserProvider>
               <Navbar />
               <RouteProgress />
               <ProStatusWatcher />
-              <main>{children}</main>
+              <main className="pb-8 sm:pb-0">{children}</main>
+              <MobileBottomNav />
             </UserProvider>
             <Toaster richColors position="top-right" />
           </ThemeProvider>

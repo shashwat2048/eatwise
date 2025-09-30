@@ -92,7 +92,7 @@ export default function ProUpgradePage() {
                 <RainbowButton
                   onClick={goToPaymentLink}
                   disabled={!isSignedIn}
-                  className="rounded-md h-11 px-5"
+                  className="rounded-md h-11 px-5 dark:text-black text-white"
                 >
                   Get Unlimited Access
                 </RainbowButton>

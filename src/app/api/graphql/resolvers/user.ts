@@ -2,6 +2,7 @@ import db from "@/services/prisma"
 import { uploadImageBase64 } from "@/services/cloudinary"
 import { getAuth } from "@clerk/nextjs/server"
 import { verifyToken } from "@/services/jwt"
+import { GoogleGenAI } from "@google/genai";
 
 export async function me(_: any, __: any, context: { auth?: { userId?: string } }) {
     try {
@@ -200,6 +201,12 @@ export async function analyzeLabel(
             process.env.NEXT_PUBLIC_GEMINI_API_KEY
         ) as string;
         if (!apiKey) throw new Error('Missing GOOGLE_API_KEY or GEMINI_API_KEY (server env)');
+        // Allow overriding model from env in case certain models are not available
+        // Common models: gemini-2.5-flash, gemini-1.5-flash, gemini-1.5-pro, gemini-pro-vision, etc.
+        const geminiModel =
+            process.env.GEMINI_MODEL ||
+            process.env.NEXT_PUBLIC_GEMINI_MODEL ||
+            'gemini-2.5-flash';
         // Pull user allergies for context
         let userAllergies: string[] = [];
         try {
@@ -211,32 +218,24 @@ export async function analyzeLabel(
         } catch {}
 
         const prompt = `You are given an image of a food product label. Carefully extract all text, especially ingredients and nutrition.\n\nYou are a nutrition assistant for EatWise. Analyze and return structured JSON.\n\nUser allergies (treat these as high-risk): ${JSON.stringify(userAllergies)}\n\nReturn ONLY JSON with these fields:\n- name: string (concise product/label name; if missing, derive from visible brand/product text)\n- ingredients: array of strings (clean, lowercase)\n- allergens: array of confirmed allergens (from label)\n- possibleAllergens: array of likely allergens inferred from ingredients (e.g., 'whey' -> 'milk', 'albumin' -> 'eggs', 'soy lecithin' -> 'soy', 'almonds' -> 'nuts', 'gluten', 'shellfish')\n- nutrition: object (calories, protein, fat, sugar, fiber, saturated_fat, sodium, etc.)\n- health_analysis: short paragraph\n- grade: one of 'A','B','C','D','E' (Nutri-Score style, best=A, worst=E) based on overall nutrition\n- isAllergic: boolean (true if any ingredient matches the user allergies above)\n- allergensMatched: array of strings (which of the user allergies matched)`;
-        // 2) Call Gemini using inlineData (recommended when you already have base64)
-        const body = {
+
+        // 2) Call Gemini using the official @google/genai client, with inlineData for the image
+        const ai = new GoogleGenAI({ apiKey });
+        const gemini = await ai.models.generateContent({
+            model: geminiModel,
             contents: [
-              {
-                role: "user",
-                parts: [
-                  { text: prompt },
-                  { inlineData: { mimeType: mimeFromInput || 'image/jpeg', data: pureBase64 } },
-                ],
-              },
+                {
+                    role: "user",
+                    parts: [
+                        { text: prompt },
+                        { inlineData: { mimeType: mimeFromInput || 'image/jpeg', data: pureBase64 } },
+                    ],
+                },
             ],
             generationConfig: { temperature: 0 },
-        } as any;
-        const resp = await fetch(
-            `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent`,
-            { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey }, body: JSON.stringify(body) }
-        );
-        if (!resp.ok) {
-            const t = await resp.text();
-            throw new Error(`Gemini failed: ${t}`);
-        }
-        const gemini = await resp.json() as any;
-        if (!gemini?.candidates || gemini.candidates.length === 0) {
-            throw new Error('Gemini returned no candidates');
-        }
-        const text = extractTextFromGemini(gemini);
+        } as any);
+
+        const text = (gemini as any)?.text ?? extractTextFromGemini((gemini as any)?.response ?? gemini);
         const parsed = parseStructured(text);
 
         const ingredients: string[] = parsed.ingredients || [];

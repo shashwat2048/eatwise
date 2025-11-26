@@ -32,7 +32,11 @@ export default function ReportsPage() {
       let parsed: any = {};
       try { parsed = r.content ? JSON.parse(r.content) : {}; } catch {}
       const grade = parsed?.grade || null;
-      const possible = parsed?.possibleAllergens || [];
+      const possible: string[] = Array.isArray(parsed?.possibleAllergens)
+        ? parsed.possibleAllergens
+        : typeof parsed?.possibleAllergens === 'string'
+          ? [parsed.possibleAllergens]
+          : [];
       const name = parsed?.name || "Food Label";
       const health = parsed?.health_analysis ? String(parsed.health_analysis) : "";
       const healthSnippet = health ? (health.length > 500 ? health.slice(0, 500) + "…" : health) : "";
@@ -103,9 +107,22 @@ export default function ReportsPage() {
           body: JSON.stringify({ query: GET_REPORTS.loc?.source.body }),
         });
         const json = await res.json();
-        const data: { myReports: Report[] } = json?.data;
+        const data: { myReports: any[] } = json?.data;
         if (!mounted) return;
-        setReports(data?.myReports || []);
+        const normalized: Report[] = (data?.myReports || []).map((r: any) => ({
+          ...r,
+          ingredients: Array.isArray(r?.ingredients)
+            ? r.ingredients
+            : typeof r?.ingredients === 'string'
+              ? [r.ingredients]
+              : [],
+          allergensFound: Array.isArray(r?.allergensFound)
+            ? r.allergensFound
+            : typeof r?.allergensFound === 'string'
+              ? [r.allergensFound]
+              : [],
+        }));
+        setReports(normalized);
 
         // fetch user allergies
         const res2 = await fetch('/api/graphql', {
@@ -142,7 +159,12 @@ export default function ReportsPage() {
             const nutrition = parsed?.nutrition || {};
             const health = parsed?.health_analysis || "";
             const grade = parsed?.grade || null;
-            const possible = parsed?.possibleAllergens || [];
+            const possibleRaw = parsed?.possibleAllergens;
+            const possible: string[] = Array.isArray(possibleRaw)
+              ? possibleRaw
+              : typeof possibleRaw === 'string'
+                ? [possibleRaw]
+                : [];
             const name = parsed?.name || "Food Label";
             return (
               <details key={r.id} className="group rounded-2xl border backdrop-blur bg-white/60 dark:bg-black/30 p-3 sm:p-4 hover:scale-101 hover:border-teal-600 transition transform duration-300">

@@ -48,7 +48,10 @@ export default function Page() {
 
         {/* Form + value props (mobile) */}
         <div className="mx-auto w-full max-w-md">
-          <SignIn afterSignInUrl="/" signUpFallbackRedirectUrl="/" />
+          <SignIn
+            fallbackRedirectUrl="/"
+            forceRedirectUrl={null as any}
+          />
           
           <div className="mt-6 grid gap-2 text-xs text-gray-600 dark:text-gray-300 md:hidden">
             <div>✅ AI-Powered Nutrition Analysis</div>

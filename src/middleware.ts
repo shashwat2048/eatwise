@@ -7,6 +7,9 @@ const isPublicRoute = createRouteMatcher([
   '/api/webhooks(.*)',
   '/api/graphql(.*)',
   '/',
+  '/sitemap.xml',
+  '/robots.txt',
+  '/google(.*)', // Google verification files like googleXXXX.html
 ])
 
 export default clerkMiddleware(async (auth, req) => {

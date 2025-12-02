@@ -11,6 +11,7 @@ import ProStatusWatcher from "@/components/ui/pro-status-watcher";
 import { UserProvider } from "@/components/ui/user-context";
 import RouteProgress from "@/components/ui/route-progress";
 import MobileBottomNav from "@/components/ui/mobile-bottom-nav";
+import StripeLoader from "@/components/stripe-loader";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -85,7 +86,7 @@ export default async function RootLayout({
             <div className="fixed inset-0 -z-10 pointer-events-none">
               <div className="absolute inset-0 bg-gradient-to-b from-teal-200/40 via-transparent to-transparent dark:from-teal-800/25 dark:via-transparent" />
             </div>
-            {!isSearchBot && <Script async src="https://js.stripe.com/v3/buy-button.js" />}
+            <StripeLoader />
             <UserProvider>
               <Navbar />
               <RouteProgress />

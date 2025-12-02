@@ -1,6 +1,6 @@
 import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
- 
+
 
 const isPublicRoute = createRouteMatcher([
   '/sign-in(.*)',
@@ -12,7 +12,32 @@ const isPublicRoute = createRouteMatcher([
   '/google(.*)', // Google verification files like googleXXXX.html
 ])
 
+const isBot = (req: Request) => {
+  const userAgent = (req.headers.get('user-agent') || '').toLowerCase();
+  const bots = [
+    'googlebot',
+    'bingbot',
+    'slurp',
+    'duckduckbot',
+    'baiduspider',
+    'yandexbot',
+    'sogou',
+    'exabot',
+    'facebot',
+    'facebookexternalhit',
+    'twitterbot',
+    'whatsapp',
+    'telegrambot',
+    'discordbot',
+  ];
+  return bots.some(bot => userAgent.includes(bot));
+}
+
 export default clerkMiddleware(async (auth, req) => {
+  if (isBot(req)) {
+    return NextResponse.next();
+  }
+
   if (!isPublicRoute(req)) {
     await auth.protect();
   }

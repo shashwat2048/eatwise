@@ -5,7 +5,7 @@ import type { MetadataRoute } from "next";
 export default function sitemap(): MetadataRoute.Sitemap {
   const baseUrl =
     process.env.NEXT_PUBLIC_APP_URL ||
-    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000");
+    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "https://eatwise-ai.vercel.app");
 
   const now = new Date();
 
@@ -14,13 +14,11 @@ export default function sitemap(): MetadataRoute.Sitemap {
     changeFrequency?: MetadataRoute.Sitemap[number]["changeFrequency"];
     priority?: MetadataRoute.Sitemap[number]["priority"];
   }> = [
-    { path: "/", changeFrequency: "weekly", priority: 1 },
-    { path: "/analyze", changeFrequency: "weekly", priority: 0.9 },
-    { path: "/eatwise-ai-PRO", changeFrequency: "monthly", priority: 0.7 },
-    { path: "/reports", changeFrequency: "daily", priority: 0.8 },
-    { path: "/profile", changeFrequency: "monthly", priority: 0.6 },
-    { path: "/sign-in", changeFrequency: "yearly", priority: 0.3 },
-  ];
+      { path: "/", changeFrequency: "weekly", priority: 1 },
+      { path: "/analyze", changeFrequency: "weekly", priority: 0.9 },
+      { path: "/eatwise-ai-PRO", changeFrequency: "monthly", priority: 0.7 },
+      { path: "/sign-in", changeFrequency: "yearly", priority: 0.3 },
+    ];
 
   return routes.map((route) => ({
     url: `${baseUrl}${route.path}`,

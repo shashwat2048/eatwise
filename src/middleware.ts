@@ -12,29 +12,11 @@ const isPublicRoute = createRouteMatcher([
   '/google(.*)', // Google verification files like googleXXXX.html
 ])
 
-const isBot = (req: Request) => {
-  const userAgent = (req.headers.get('user-agent') || '').toLowerCase();
-  const bots = [
-    'googlebot',
-    'bingbot',
-    'slurp',
-    'duckduckbot',
-    'baiduspider',
-    'yandexbot',
-    'sogou',
-    'exabot',
-    'facebot',
-    'facebookexternalhit',
-    'twitterbot',
-    'whatsapp',
-    'telegrambot',
-    'discordbot',
-  ];
-  return bots.some(bot => userAgent.includes(bot));
-}
+import { isBot } from '@/lib/utils';
 
 export default clerkMiddleware(async (auth, req) => {
-  if (isBot(req)) {
+  const userAgent = (req.headers.get('user-agent') || '').toLowerCase();
+  if (isBot(userAgent)) {
     return NextResponse.next();
   }
 

@@ -60,11 +60,20 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
+import { headers } from "next/headers";
+import { isBot } from "@/lib/utils";
+
+// ... (existing imports)
+
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const headersList = await headers();
+  const userAgent = headersList.get("user-agent") || "";
+  const isSearchBot = isBot(userAgent);
+
   return (
     <ClerkProvider
       signInFallbackRedirectUrl="/"
@@ -76,7 +85,7 @@ export default function RootLayout({
             <div className="fixed inset-0 -z-10 pointer-events-none">
               <div className="absolute inset-0 bg-gradient-to-b from-teal-200/40 via-transparent to-transparent dark:from-teal-800/25 dark:via-transparent" />
             </div>
-            <Script async src="https://js.stripe.com/v3/buy-button.js" />
+            {!isSearchBot && <Script async src="https://js.stripe.com/v3/buy-button.js" />}
             <UserProvider>
               <Navbar />
               <RouteProgress />
